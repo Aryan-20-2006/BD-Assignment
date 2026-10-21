@@ -15,6 +15,9 @@ Kafka cluster: VM2 = controller + broker 1, VM3 = broker 2
 Topics: orders, order_metrics (2 partitions, replication factor 2)
 ```
 
+**Running the demo?** Follow [`DEMO_RUNBOOK.md`](DEMO_RUNBOOK.md): numbered
+steps, each labelled with the VM that runs it.
+
 ## Layout
 
 | Path | Contents |

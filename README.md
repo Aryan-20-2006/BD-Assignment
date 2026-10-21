@@ -46,21 +46,91 @@ On the VMs, set `KAFKA_BOOTSTRAP_SERVERS=VM2_ADDRESS:9092,VM3_ADDRESS:9092`.
 If it isn't set, the scripts fall back to the `BS` variable from the TA's
 instructions; `kafka/topics.sh` uses `BOOTSTRAP`, then `BS`.
 
-## Prerequisites
+## Prerequisites (install before demo day)
 
-- Python 3.10+ and Java 17+ (tested with Java 25 on Windows and Java 21 on Ubuntu).
-- `JAVA_HOME` must point at the JDK folder, not its `bin` folder.
-- Kafka 4.3.1 (KRaft only, no ZooKeeper).
+All commands assume Ubuntu, or WSL Ubuntu on Windows. Do this once on your
+VM, before the team session.
+
+### What each VM needs
+
+| Software | VM1 | VM2 | VM3 | VM4 | Why |
+|---|:-:|:-:|:-:|:-:|---|
+| ZeroTier | ✔ | ✔ | ✔ | ✔ | All four VMs on one private network |
+| Git | ✔ | ✔ | ✔ | ✔ | Clone this repo (configs and scripts) |
+| netcat (`nc`) | ✔ | ✔ | ✔ | ✔ | Check that brokers are reachable |
+| Java 17+ | ✔ | ✔ | ✔ | ✔ | Kafka runs on Java; PySpark needs it too |
+| Kafka 4.3.1 | optional | ✔ | ✔ | – | The brokers. On VM1 it's only for the cluster check commands |
+| Python 3.10+ and venv | ✔ | – | – | ✔ | Producers, consumers, Spark jobs |
+| `pip install -r requirements.txt` | ✔ | – | – | ✔ | PySpark 4.2.0, kafka-python 2.2.15 |
+
+VM1 runs in WSL: install ZeroTier **on Windows** (WSL traffic goes through
+Windows) and everything else inside WSL. On a VirtualBox/VMware VM, install
+ZeroTier **inside the VM**, not on the host.
+
+### 1. Every VM: system packages and ZeroTier
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate            # Windows PowerShell: .venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+sudo apt update
+sudo apt install -y git netcat-openbsd openjdk-21-jre-headless curl
+java -version                                         # must say 17 or higher
 
-# Kafka (on VM2 and VM3, or in WSL for a single-machine run)
-curl -LO https://dlcdn.apache.org/kafka/4.3.1/kafka_2.13-4.3.1.tgz
-tar xzf kafka_2.13-4.3.1.tgz && ln -sfn ~/kafka_2.13-4.3.1 ~/kafka
+# ZeroTier (Linux VMs; on Windows use the installer from zerotier.com)
+curl -s https://install.zerotier.com | sudo bash
+sudo zerotier-cli join <NETWORK_ID>                   # then approve the member in ZeroTier Central
+ip -4 addr | grep -A2 zt                              # note your ZeroTier IP and share it with the team
+
+# Get the code
+git clone <REPO_URL> BD-Assignment
+cd BD-Assignment
 ```
+
+### 2. VM2 and VM3 (and optionally VM1): Kafka
+
+```bash
+curl -LO https://dlcdn.apache.org/kafka/4.3.1/kafka_2.13-4.3.1.tgz
+#   if that link 404s: https://archive.apache.org/dist/kafka/4.3.1/kafka_2.13-4.3.1.tgz
+tar xzf kafka_2.13-4.3.1.tgz -C ~ && ln -sfn ~/kafka_2.13-4.3.1 ~/kafka
+~/kafka/bin/kafka-topics.sh --version                 # prints 4.3.1
+
+# Open the Kafka ports if the firewall is on
+sudo ufw status | grep -q "Status: active" && sudo ufw allow 9092/tcp   # VM2 and VM3
+sudo ufw status | grep -q "Status: active" && sudo ufw allow 9093/tcp   # VM2 only (controller)
+```
+
+Kafka 4.x runs in KRaft mode only (no ZooKeeper). Formatting the storage and
+starting the brokers is covered in "Four-VM deployment" below and in
+`demo_commands.md`.
+
+### 3. VM1 and VM4: Python environment
+
+```bash
+sudo apt install -y python3 python3-venv python3-pip
+python3 -m venv .venv
+source .venv/bin/activate                             # needed in every new terminal
+pip install -r requirements.txt                       # ~400 MB, takes a few minutes
+pip list | grep -iE "pyspark|kafka"                   # pyspark 4.2.0, kafka-python 2.2.15
+```
+
+On VM1 (WSL) this repo uses `.venv-wsl` instead of `.venv`, so that it
+doesn't clash with a Windows venv in the same folder. Either name works; just
+activate the one you made.
+
+If Spark complains about Java, set `JAVA_HOME` to the JDK folder itself, not
+its `bin` folder. For example:
+`export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64`.
+
+### 4. Check everything is installed
+
+```bash
+git --version && nc -h 2>&1 | head -1 && java -version 2>&1 | head -1
+~/kafka/bin/kafka-topics.sh --version                                 # VM2, VM3
+python -c "import pyspark, kafka; print(pyspark.__version__, kafka.__version__)"   # VM1, VM4 (venv active)
+sudo zerotier-cli listnetworks                                        # status OK, with your ZeroTier IP
+```
+
+Once the ZeroTier IPs are shared, test the network before demo day. From
+every VM run `ping <VM2 ZeroTier IP>`. After VM2 has started Kafka, VM1, VM3
+and VM4 can also run `nc -zv <VM2 ZeroTier IP> 9092`.
 
 ## Single-machine run
 

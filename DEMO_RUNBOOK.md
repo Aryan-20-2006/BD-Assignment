@@ -26,11 +26,43 @@ troubleshooting are in `demo_commands.md`.
 ### Step 0 · EVERYONE · Set up the terminal
 Do this in every new terminal.
 
+Copy only the block for your VM.
+
+**VM1** (Aryan's laptop, WSL):
 ```bash
-cd ~/BD-Assignment                      # VM1 alone/WSL: cd /mnt/c/Users/Aryan/Desktop/BD-Assignment
-source .venv/bin/activate               # VM1 and VM4 only (VM1 in WSL: .venv-wsl/bin/activate)
+cd /mnt/c/Users/Aryan/Desktop/BD-Assignment
+source .venv-wsl/bin/activate
+export KAFKA_HOME=~/kafka
+export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64   # ~/.bashrc sets Java 11; Kafka needs 17+
+unset SPARK_HOME HADOOP_HOME HADOOP_CONF_DIR PYSPARK_PYTHON PYSPARK_DRIVER_PYTHON   # use the venv's PySpark 4.2
+```
+
+**VM4:**
+```bash
+cd ~/BD-Assignment
+source .venv/bin/activate
 export KAFKA_HOME=~/kafka
 ```
+
+**VM2 and VM3** (no Python needed):
+```bash
+cd ~/BD-Assignment
+export KAFKA_HOME=~/kafka
+```
+
+Your prompt should show `(.venv-wsl)` or `(.venv)` on VM1 and VM4. If `cd`
+fails, go to the folder where you cloned the repo.
+
+Everyone: run `$JAVA_HOME/bin/java -version`, or `java -version` if
+`JAVA_HOME` is empty. It must say 17 or higher. If it says 11 or lower, set
+`JAVA_HOME` to a newer JDK from `ls /usr/lib/jvm`, otherwise Kafka fails with
+"class file versions up to 55.0".
+
+VM1 and VM4: if Spark fails with `'JavaPackage' object is not callable`, an
+old Spark install is being picked up. Run the `unset ...` line from the VM1
+block above.
+
+Copy the commands without the surrounding backticks (`` ` ``).
 
 Then set the broker addresses.
 

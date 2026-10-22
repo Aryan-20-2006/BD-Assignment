@@ -119,7 +119,11 @@ steps over ZeroTier.
   then starts broker 1, waits 10 s, and starts broker 2. Success test from
   Aryan's WSL: `nc -zv -w 5 10.31.88.79 9092` says `succeeded`.
 - In this setup, step 18 must be `pkill -9 -f broker2.properties` (the TA's
-  `pkill -9 -f kafka.Kafka` would kill both brokers).
+  `pkill -9 -f kafka.Kafka` would kill both brokers). This happened once: all
+  ports refused, and the election/describe said "node could not be established".
+  Recovery: start broker 1, wait 10 s, start broker 2, then redo from step 16.
+  The PDF's step 18 now shows the broker2 command while both brokers share
+  10.31.88.79, and switches back to the TA's command once VM3 has its own IP.
 
 ## Fixes on Aryan's laptop (WSL)
 

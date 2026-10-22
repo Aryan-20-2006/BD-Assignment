@@ -75,7 +75,7 @@ def summary_box(steps, show, explain):
     story.append(Spacer(1, 6))
 
 
-def step(num, who, title, cmds, expect=None, alone=None, boxes=None):
+def step(num, who, title, cmds, expect=None, alone=None, boxes=None, fix=None):
     """One demo step in flow order.
 
     cmds  - the demo-day command box
@@ -94,6 +94,8 @@ def step(num, who, title, cmds, expect=None, alone=None, boxes=None):
         parts += [Preformatted(text, CMD), Spacer(1, 8)]
     if expect:
         parts.append(Paragraph("<b>Expect:</b> " + expect, EXP))
+    if fix:
+        parts += [Spacer(1, 3), Paragraph("<b>If it fails:</b> " + fix, EXP)]
     story.append(KeepTogether(parts))
 
 
@@ -255,8 +257,10 @@ p("<b>Copying:</b> copy one grey box at a time. A line ending in " + C("\\") + "
 if VM2_ADDR.split(":")[0] == VM3_ADDR.split(":")[0]:
     p("<b>For now VM2's machine also runs VM3's broker</b> (second broker on port 9094), because Member 3 hasn't "
       "joined yet. That machine does the one-time setup box marked \"for now\" below, then runs both Member 2's "
-      "and Member 3's steps. Only step 18 differs there: use " + C("pkill -9 -f broker2.properties")
-      + ", because " + C("pkill -9 -f kafka.Kafka") + " would kill both brokers.", BOX)
+      "and Member 3's steps. Step 18 is " + C("pkill -9 -f broker2.properties")
+      + " for now, because the TA's " + C("pkill -9 -f kafka.Kafka") + " would kill both brokers. "
+      "Member 4 hasn't joined either, so Member 1's laptop runs Member 4's steps too, with Member 1's step 0 box.",
+      BOX)
 
 # ---------------------------------------------------------------- one-time setup (the day before)
 VM2_IP = VM2_ADDR.split(":")[0]
@@ -290,7 +294,8 @@ step("B", "2", "Broker 1 config, cluster ID, storage, firewall",
      + ") and " + C("log.dirs=/home/...") + "; " + C("cat") + " prints the cluster ID: <b>send it to Member 3</b>; "
      + C("format") + " ends with " + C("Formatting ...") + ". The " + C("ufw") + " line lets ZeroTier traffic "
      "through the firewall. If " + C("format") + " says the directory is already formatted, run "
-     + C("rm -rf ~/kafka-data") + " and repeat that line.")
+     + C("rm -rf ~/kafka-data") + " and repeat that line. Box B makes a <b>new</b> cluster ID each time, so if "
+     "you run it again, redo box C too.")
 if SAME_HOST:
     step("C", "2", "For now: broker 2 on the same machine (port 9094)",
          "cd ~/BD-Assignment\n"
@@ -302,6 +307,8 @@ if SAME_HOST:
          % (VM2_IP, VM3_ADDR),
          "the " + C("grep") + " shows " + C("0.0.0.0:9094") + ", " + C(VM3_ADDR) + " and "
          + C("log.dirs=/home/.../kafka-data2") + ". Then run steps 1 and 2 below on this machine. "
+         "If " + C("format") + " says it's already formatted, or box B was run again (new cluster ID), run "
+         + C("rm -rf ~/kafka-data2") + " and repeat the " + C("format") + " line. "
          "When Member 3 joins, they get their own setup box here and broker 2 moves to their VM.")
 # Member 3's own box only appears once VM3 is a separate machine (VM3_ADDR has its own IP).
 if not SAME_HOST:
@@ -322,9 +329,11 @@ if not SAME_HOST:
 
 p("Before the checkpoints", H2)
 step(0, "all", "Set up the terminal (every terminal you use)", None,
-     "the prompt starts with " + C("(.venv-wsl)") + " (Member 1) or " + C("(.venv)") + " (Member 4). "
-     "Member 4: if Spark later fails with " + C("'JavaPackage' object is not callable") + ", run the "
-     + C("unset ...") + " line from Member 1's box.",
+     "the prompt starts with " + C("(.venv-wsl)") + " (Member 1) or " + C("(.venv)") + " (Member 4).",
+     fix=C("No such file or directory") + " on the " + C("cd") + " line: the repo is in another folder, so do "
+     "one-time box A. " + C("python: command not found") + " later: this box wasn't run in that terminal, so run "
+     "it again. A " + C(">") + " prompt where nothing happens: part of a line (often a quote) was missed when "
+     "copying, so press Ctrl+C and copy the whole box again.",
      boxes=[("<b>Member 1 (VM1):</b>", M1_SETUP + SETUP_TAIL),
             ("<b>Members 2 and 3 (VM2, VM3):</b>", M23_SETUP + SETUP_TAIL),
             ("<b>Member 4 (VM4):</b>", M4_SETUP + SETUP_TAIL),
@@ -332,6 +341,9 @@ step(0, "all", "Set up the terminal (every terminal you use)", None,
 step(1, "2", "Start broker 1 and the controller",
      "$KAFKA_HOME/bin/kafka-server-start.sh -daemon ~/broker1.properties",
      "no output. (Alone: " + C("format") + " is needed after every WSL restart and is safe to repeat.)",
+     fix="if the broker doesn't come up and " + C("$KAFKA_HOME/logs/kafkaServer.out") + " says "
+     + C("class file versions up to 55.0") + ", Java is too old: run "
+     + C("export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64") + " and start it again.",
      alone="bash kafka/local/cluster.sh format\nbash kafka/local/cluster.sh start 1")
 step(2, "3", "Start broker 2",
      "$KAFKA_HOME/bin/kafka-server-start.sh -daemon ~/broker2.properties",
@@ -339,7 +351,10 @@ step(2, "3", "Start broker 2",
      alone="bash kafka/local/cluster.sh start 2")
 step(3, "2", "Create fresh topics",
      "bash kafka/topics.sh delete\nsleep 5\nbash kafka/topics.sh create",
-     "both topics with " + C("PartitionCount: 2") + ", " + C("ReplicationFactor: 2") + ", Isr 1,2.")
+     "both topics with " + C("PartitionCount: 2") + ", " + C("ReplicationFactor: 2") + ", Isr 1,2.",
+     fix=C("Permission denied") + ": type it with " + C("bash") + " in front, as here (or run "
+     + C("chmod +x kafka/*.sh kafka/local/*.sh") + " once). " + C("Connection to node ... could not be "
+     "established") + ": a broker isn't running, so redo steps 1 and 2.")
 step(4, "1+4", "Clear old outputs", CLEAR,
      "no output. The TA only accepts outputs made during the live run.")
 
@@ -349,7 +364,12 @@ step(5, "2", "Brokers reachable, VM2 is the controller, topics exist",
      '$KAFKA_HOME/bin/kafka-metadata-quorum.sh --bootstrap-server "$BS" describe --status\n'
      '$KAFKA_HOME/bin/kafka-topics.sh --bootstrap-server "$BS" --list',
      "two brokers, " + C("id: 1") + " and " + C("id: 2") + "; " + C("LeaderId: 1") + " (VM2 is the controller); "
-     + C("orders") + " and " + C("order_metrics") + ".")
+     + C("orders") + " and " + C("order_metrics") + ".",
+     fix="the brokers are shown as " + C("localhost") + ": the configs from one-time boxes B and C aren't being "
+     "used, so redo them, then steps 1 and 2. " + C("Connection to node -1 ... could not be established")
+     + " or " + C("Connection refused") + ": broker 1 isn't running, so run step 1, wait 10 s, then step 2. "
+     + C("timed out") + ": the broker machine's firewall is blocking, so run " + C("sudo ufw allow in on zt+")
+     + " there.")
 
 p("Checkpoint 2: raw orders, VM1 -> Kafka -> VM4", H2)
 step(6, "2", "Observer on orders (leave it running)",
@@ -358,10 +378,16 @@ step(6, "2", "Observer on orders (leave it running)",
      '    --consumer-property auto.offset.reset=latest \\\n'
      '    --max-messages 3 --timeout-ms 30000',
      "it waits, and gives up after 30 s, so step 7 must start right away. The " + C("deprecated")
-     + " warning is harmless.")
+     + " warning is harmless.",
+     fix="it ends with " + C("Processed a total of 0 messages") + ": step 7 started too late. Run this again, "
+     "then step 7 straight away.")
 step(7, "1", "Producer 1",
      "python producer/producer1.py --input order.jsonl",
-     C("published 62 records") + "; the observer prints 3 records and " + C("Processed a total of 3 messages") + ".")
+     C("published 62 records") + "; the observer prints 3 records and " + C("Processed a total of 3 messages") + ".",
+     fix=C("python: command not found") + ": run your step 0 box in this terminal. " + C("NoBrokersAvailable")
+     + " or " + C("KafkaTimeoutError") + ": this laptop can't use the brokers; step 5 must show "
+     + C(VM2_ADDR.split(":")[0]) + " for both brokers (not " + C("localhost") + "), and step 0 must have been run "
+     "here.")
 step(8, "4", "Consumer 1",
      "python consumer/consumer1.py --output outputs/orders_landed.jsonl",
      C("landed 62 records") + ".")
@@ -373,13 +399,17 @@ p("Checkpoint 3: enriched orders, VM4 -> Kafka -> VM1", H2)
 step(10, "4", "Spark Job 1",
      "python spark/spark_job1.py --input outputs/orders_landed.jsonl \\\n"
      "    --output outputs/order_metrics.jsonl",
-     C("enriched records written: 44") + ".")
+     C("enriched records written: 44") + ".",
+     fix=C("'JavaPackage' object is not callable") + ": an old Spark install is being picked up; run the "
+     + C("unset ...") + " line from Member 1's step 0 box, then run this again.")
 step(11, "2", "Observer on order_metrics (leave it running)",
      '$KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server "$BS" \\\n'
      '    --topic order_metrics --group ta-observer-teamXX-run2 \\\n'
      '    --consumer-property auto.offset.reset=latest \\\n'
      '    --max-messages 3 --timeout-ms 30000',
-     "it waits; step 12 must start within 30 s.")
+     "it waits; step 12 must start within 30 s.",
+     fix="it ends with " + C("Processed a total of 0 messages") + ": step 12 started too late. Run this again, "
+     "then step 12 straight away.")
 step(12, "4", "Producer 2",
      "python producer/producer2.py --input outputs/order_metrics.jsonl",
      C("published 44 records") + "; the observer prints 3 records.")
@@ -393,7 +423,9 @@ step(15, "1", "Spark Job 2 (the final CSVs)",
      "python spark/spark_job2.py --input outputs/order_metrics_landed.jsonl \\\n"
      "    --output-dir outputs",
      C("6 rows -> restaurant_summary.csv") + " and " + C("4 rows -> city_summary.csv")
-     + ". If the TA wants to see them: " + C("cat outputs/restaurant_summary.csv outputs/city_summary.csv") + ".")
+     + ". If the TA wants to see them: " + C("cat outputs/restaurant_summary.csv outputs/city_summary.csv") + ".",
+     fix=C("'JavaPackage' object is not callable") + ": an old Spark install is being picked up; run the "
+     + C("unset ...") + " line from Member 1's step 0 box, then run this again.")
 
 p("Checkpoint 4: broker failure and recovery", H2)
 step(16, "2", "Leaders and ISR before the failure",
@@ -404,18 +436,31 @@ step(17, "1", "Slow producer (leave it running)",
      "one line per record, " + C("sent 1/62 -> partition ...") + ", every half second. Keep it on screen: after "
      "the kill in step 18 it pauses briefly, then carries on to " + C("sent 62/62") + " and "
      + C("published 62 records") + " with no error. That is the pipeline continuity the TA checks.")
-step(18, "3", "Kill the broker (while step 17 is still sending)",
-     "pkill -9 -f kafka.Kafka",
-     "no output. <b>Never run this on VM2.</b>",
-     alone="pkill -9 -f broker2.properties")
+if VM2_ADDR.split(":")[0] == VM3_ADDR.split(":")[0]:
+    # Both brokers share one machine for now: the TA's `pkill -9 -f kafka.Kafka` would kill broker 1 and the
+    # controller too, so kill only broker 2's process.
+    step(18, "3", "Kill broker 2 (while step 17 is still sending)",
+         "pkill -9 -f broker2.properties",
+         "no output; only broker 2 dies. <b>Not</b> the TA's " + C("pkill -9 -f kafka.Kafka")
+         + " here: on this shared machine it would kill broker 1 and the controller as well. Once VM3 is its own "
+         "machine, the TA's command is the one to use there.")
+else:
+    step(18, "3", "Kill the broker (while step 17 is still sending)",
+         "pkill -9 -f kafka.Kafka",
+         "no output. <b>Never run this on VM2.</b>",
+         alone="pkill -9 -f broker2.properties")
 step(19, "2", "Leaders and ISR after the failure",
      "sleep 10\n"
      '$KAFKA_HOME/bin/kafka-topics.sh --bootstrap-server "$BS" --describe --topic orders',
-     C("Leader: 1") + " and " + C("Isr: 1") + " on both partitions.")
+     C("Leader: 1") + " and " + C("Isr: 1") + " on both partitions. A " + C("WARN ... Connection to node 2 ... "
+     "could not be established") + " line is normal here: broker 2 is the one that's down.",
+     fix="the describe never finishes and every node fails: both brokers died (the TA's "
+     + C("pkill -9 -f kafka.Kafka") + " on a machine that runs both). Run steps 1 and 2, then redo from step 16.")
 step(20, "3", "Restart the broker (leave this terminal open)",
      "KAFKA_HEAP_OPTS='-Xmx512m -Xms512m' $KAFKA_HOME/bin/kafka-server-start.sh \\\n"
      "    ~/broker2.properties",
-     "it keeps printing log lines in this terminal; don't close it.",
+     "it keeps printing log lines (some " + C("WARN") + " ones are normal) and doesn't return to the prompt. "
+     "Don't close this terminal or press Ctrl+C: that stops broker 2 again.",
      alone="bash kafka/local/cluster.sh start 2")
 step(21, "2", "Leaders and ISR after the restart",
      "sleep 15\n"
@@ -426,7 +471,9 @@ step(22, "2", "Leader election, then check again",
      '    --election-type preferred --all-topic-partitions\n'
      '$KAFKA_HOME/bin/kafka-topics.sh --bootstrap-server "$BS" --describe --topic orders',
      C("Successfully completed leader election") + "; the leaders are back to how they were in step 16. "
-     "<b>Demo finished.</b> (Alone: " + C("bash kafka/local/cluster.sh stop all") + ".)")
+     "<b>Demo finished.</b> (Alone: " + C("bash kafka/local/cluster.sh stop all") + ".)",
+     fix=C("Connection to node ... could not be established") + " and it never finishes: a broker is down. Run "
+     "step 1, wait 10 s, run step 2, then steps 21 and 22 again.")
 
 # ================================================================ 4 member 1
 story.append(PageBreak())

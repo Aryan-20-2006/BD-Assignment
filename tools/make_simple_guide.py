@@ -456,24 +456,31 @@ step(19, "2", "Leaders and ISR after the failure",
      "could not be established") + " line is normal here: broker 2 is the one that's down.",
      fix="the describe never finishes and every node fails: both brokers died (the TA's "
      + C("pkill -9 -f kafka.Kafka") + " on a machine that runs both). Run steps 1 and 2, then redo from step 16.")
-step(20, "3", "Restart the broker (leave this terminal open)",
+step(20, "3", "Restart the broker in a second terminal (leave it open)",
      "KAFKA_HEAP_OPTS='-Xmx512m -Xms512m' $KAFKA_HOME/bin/kafka-server-start.sh \\\n"
      "    ~/broker2.properties",
-     "it keeps printing log lines (some " + C("WARN") + " ones are normal) and doesn't return to the prompt. "
-     "Don't close this terminal or press Ctrl+C: that stops broker 2 again.",
+     "it keeps printing log lines (some " + C("WARN") + " ones are normal), including "
+     + C("Kafka Server started") + ", and doesn't return to the prompt. Run it in a <b>separate terminal</b> "
+     "(with step 0 done) and don't close it or press Ctrl+C: that stops broker 2 again.",
+     fix="it returns to the prompt by itself: broker 2 didn't start; the last lines it printed say why.",
      alone="bash kafka/local/cluster.sh start 2")
 step(21, "2", "Leaders and ISR after the restart",
      "sleep 15\n"
      '$KAFKA_HOME/bin/kafka-topics.sh --bootstrap-server "$BS" --describe --topic orders',
-     C("Isr: 1,2") + " again; leaders are still all 1.")
+     C("Isr: 1,2") + " again; leaders are still all 1. Don't go on to step 22 until it says so.",
+     fix="still " + C("Isr: 1") + ": broker 2 isn't running. Check the step 20 terminal is still open and "
+     "printing; if not, run step 20 again, wait 15 s, and repeat this step.")
 step(22, "2", "Leader election, then check again",
      '$KAFKA_HOME/bin/kafka-leader-election.sh --bootstrap-server "$BS" \\\n'
      '    --election-type preferred --all-topic-partitions\n'
      '$KAFKA_HOME/bin/kafka-topics.sh --bootstrap-server "$BS" --describe --topic orders',
      C("Successfully completed leader election") + "; the leaders are back to how they were in step 16. "
      "<b>Demo finished.</b> (Alone: " + C("bash kafka/local/cluster.sh stop all") + ".)",
-     fix=C("Connection to node ... could not be established") + " and it never finishes: a broker is down. Run "
-     "step 1, wait 10 s, run step 2, then steps 21 and 22 again.")
+     fix="many " + C("PreferredLeaderNotAvailableException") + " lines and " + C("Isr: 1") + " in the "
+     "describe: broker 2 isn't back yet (the preferred leader of partition 0 is broker 2). Do step 20 again in "
+     "its own terminal, wait until step 21 shows " + C("Isr: 1,2") + ", then run this again. "
+     + C("Connection to node ... could not be established") + " and it never finishes: broker 1 is down too, so "
+     "run step 1, wait 10 s, run step 2, then steps 21 and 22 again.")
 
 # ================================================================ 4 member 1
 story.append(PageBreak())

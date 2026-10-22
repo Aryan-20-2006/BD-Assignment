@@ -28,15 +28,28 @@ CMD = ParagraphStyle("CMD", fontName="Courier", fontSize=9, leading=12.5,
                      backColor=colors.HexColor("#eef2f7"), borderColor=colors.HexColor("#b8c4d6"),
                      borderWidth=0.6, borderPadding=6, leftIndent=6, rightIndent=6)
 STEP = ParagraphStyle("STEP", parent=B, fontName="Helvetica-Bold", fontSize=10.5, textColor=BLUE,
-                      spaceBefore=8, spaceAfter=0)
+                      spaceBefore=10, spaceAfter=0)
 EXP = ParagraphStyle("EXP", parent=B, fontSize=9.5, leading=13, leftIndent=6)
 BOX = ParagraphStyle("BOX", parent=B, backColor=colors.HexColor("#fff4d6"), borderPadding=6,
                      borderColor=colors.HexColor("#e6c983"), borderWidth=0.6, leftIndent=6, rightIndent=6)
 
+# One colour per member, used for the tag on every demo step
+MEMBER_COLOUR = {"1": "#1565c0", "2": "#2e7d32", "3": "#c62828", "4": "#6a1b9a", "all": "#444444"}
+
 story = []
 p = lambda t, s=B: story.append(Paragraph(t, s))
-bullets = lambda items: [story.append(Paragraph(i, BUL, bulletText="•")) for i in items]
+bullets = lambda items: [story.append(Paragraph(i, BUL, bulletText="\u2022")) for i in items]
 C = lambda t: "<font face='Courier'>%s</font>" % t
+
+
+def tag(who):
+    """Coloured member label, e.g. tag('1') or tag('1+4')."""
+    if who == "all":
+        return "<font color='%s'>EVERYONE</font>" % MEMBER_COLOUR["all"]
+    parts = who.split("+")
+    label = "MEMBER " + " + ".join(parts) if len(parts) == 1 else "MEMBERS " + " + ".join(parts)
+    vms = " / ".join("VM" + x for x in parts)
+    return "<font color='%s'>%s (%s)</font>" % (MEMBER_COLOUR[parts[0]], label, vms)
 
 
 def table(rows, widths):
@@ -54,21 +67,31 @@ def qa(q, a):
     story.append(KeepTogether([Paragraph("Q. " + q, Q), Paragraph(a, A)]))
 
 
-def demo_intro(num, steps, show, explain):
-    """Start a member's demo-command subsection, with a summary box."""
-    story.append(Spacer(1, 4))
-    p(num + " Demo commands", H2)
-    story.append(Spacer(1, 4))
-    p("<b>Your steps:</b> %s<br/><b>Show the evaluator:</b> %s<br/><b>Be ready to explain:</b> %s"
-      % (steps, show, explain), BOX)
+def summary_box(steps, show, explain):
+    """Yellow box at the end of a member's explanation."""
+    story.append(Spacer(1, 6))
+    p("<b>Your demo steps (section 3):</b> %s<br/><b>Show the evaluator:</b> %s<br/>"
+      "<b>Be ready to explain:</b> %s" % (steps, show, explain), BOX)
     story.append(Spacer(1, 6))
 
 
-def step(num, title, after, cmds, expect=None):
-    head = "Step %s &middot; %s" % (num, title)
-    if after:
-        head += " <font name='Helvetica' color='#666666' size='9'>&nbsp;&nbsp;start after: %s</font>" % after
-    parts = [Paragraph(head, STEP), Spacer(1, 7), Preformatted(cmds, CMD), Spacer(1, 8)]
+def step(num, who, title, cmds, expect=None, alone=None, boxes=None):
+    """One demo step in flow order.
+
+    cmds  - the demo-day command box
+    alone - optional different box for practising on one laptop
+    boxes - optional list of (label, cmds) used instead of cmds (step 0)
+    """
+    parts = [Paragraph("Step %s &middot; %s &middot; %s" % (num, tag(who), title), STEP), Spacer(1, 7)]
+    if boxes is None:
+        boxes = [(None, cmds)]
+        if alone:
+            boxes = [("<b>Demo day:</b>", cmds),
+                     ("<b>Practising alone</b> (one laptop, local cluster):", alone)]
+    for label, text in boxes:
+        if label:
+            parts += [Paragraph(label, EXP), Spacer(1, 6)]
+        parts += [Preformatted(text, CMD), Spacer(1, 8)]
     if expect:
         parts.append(Paragraph("<b>Expect:</b> " + expect, EXP))
     story.append(KeepTogether(parts))
@@ -79,9 +102,18 @@ SETUP_TAIL = ("export B1=VM2_ZEROTIER_IP:9092\n"
               "export BS=$B1\n"
               "export BOOTSTRAP=$B1,$B2\n"
               "export KAFKA_BOOTSTRAP_SERVERS=$B1,$B2")
+# Same exports, for the local two-broker cluster (broker 2 on 9094)
+SETUP_TAIL_ALONE = SETUP_TAIL.replace("VM2_ZEROTIER_IP:9092", "localhost:9092").replace(
+    "VM3_ZEROTIER_IP:9092", "localhost:9094")
+M1_SETUP = ("cd /mnt/c/Users/Aryan/Desktop/BD-Assignment\n"
+            "source .venv-wsl/bin/activate\n"
+            "export KAFKA_HOME=~/kafka\n"
+            "export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64\n"
+            "unset SPARK_HOME HADOOP_HOME HADOOP_CONF_DIR PYSPARK_PYTHON PYSPARK_DRIVER_PYTHON\n")
+M23_SETUP = "cd ~/BD-Assignment\nexport KAFKA_HOME=~/kafka\n"
+M4_SETUP = "cd ~/BD-Assignment\nsource .venv/bin/activate\nexport KAFKA_HOME=~/kafka\n"
 CLEAR = ("rm -rf outputs/*.jsonl outputs/*.csv outputs/failover_test outputs/recovery_test\n"
          "mkdir -p outputs/failover_test outputs/recovery_test")
-NC = "nc -zv VM2_ZEROTIER_IP 9092\nnc -zv VM3_ZEROTIER_IP 9092"
 UNDER = ("$KAFKA_HOME/bin/kafka-topics.sh --bootstrap-server $B1 \\\n"
          "    --describe --under-replicated-partitions")
 
@@ -94,12 +126,10 @@ story.append(Spacer(1, 6))
 table([
     ["Section", "What's in it"],
     ["1. Big picture", "What the assignment does, the 4 machines, the rules"],
-    ["2. Demo day overview", "Order of turns, what the evaluator checks, how to copy commands"],
-    ["3. Member 1 (VM1)", "Producer 1, Consumer 2, Spark Job 2: explanation + demo commands"],
-    ["4. Member 2 (VM2)", "Broker 1 + controller: explanation + demo commands"],
-    ["5. Member 3 (VM3)", "Broker 2: explanation + demo commands"],
-    ["6. Member 4 (VM4)", "Consumer 1, Spark Job 1, Producer 2: explanation + demo commands"],
-    ["7-10", "Failure test explained, key words, viva questions, numbers to remember"],
+    ["2. Demo day overview", "Order of turns, what the evaluator checks, before you start"],
+    ["3. Demo flow", "<b>Every command, steps 0-32 in order</b>, each tagged with the member who runs it"],
+    ["4-7. Members 1-4", "What each member's part does, and what they show and explain"],
+    ["8-11", "Failure test explained, key words, viva questions, numbers to remember"],
 ], [45 * mm, 125 * mm])
 
 # ================================================================ 1 big picture
@@ -159,16 +189,13 @@ bullets([
 # ================================================================ 2 demo day overview
 story.append(PageBreak())
 p("2. Demo day overview", H1)
-p("Run the steps <b>in number order</b>. Each member runs only their own steps (in their section below) and says "
-  "<b>\"done\"</b> when they finish, then the next member starts. The same commands are in "
-  + C("DEMO_RUNBOOK.md") + " in the repo.")
-p("<b>Copying commands:</b> copy one grey box at a time and paste it into the terminal. Every line in a box "
-  "is a real command. A line ending in " + C("\\") + " continues on the next line, so copy both "
-  "lines together. Replace " + C("VM2_ZEROTIER_IP") + " and " + C("VM3_ZEROTIER_IP") + " with the real IPs.")
+p("The demo is one sequence of steps, 0 to 32, run in order (section 3). The members take turns: each step "
+  "says who runs it. When you finish your step, say <b>\"done\"</b>, and the member with the next step starts.")
 
 p("Order of turns", H2)
 table([
     ["Steps", "Member", "What happens"],
+    ["0", "Everyone", "Set up the terminal"],
     ["1", "Member 2", "Start broker 1 + controller"],
     ["2", "Member 3", "Start broker 2"],
     ["3-4", "Member 2", "Check both brokers, create fresh topics"],
@@ -205,20 +232,183 @@ p("Before you start (everyone)", H2)
 bullets([
     C("git pull") + " so every VM has the same code. ZeroTier connected; you can " + C("ping")
     + " VM2's ZeroTier IP.",
-    "Run your <b>setup</b> box (step 0) in <b>every</b> terminal you'll use.",
+    "Use a <b>Linux / WSL terminal</b>, not PowerShell. The prompt must look like "
+    + C("user@machine:...$") + ", not " + C("PS C:\\...>") + ".",
+    "Do step 0 in <b>every</b> terminal you'll use.",
     "Never stop VM2. Don't edit " + C("order.jsonl") + ".",
     "Spark's " + C("WARN") + " lines are normal. Only a " + C("Traceback") + " means a failure.",
     "Keep each command's output on screen until the evaluator has seen it.",
 ])
 
-# ================================================================ 3 member 1
+# ================================================================ 3 demo flow
 story.append(PageBreak())
-p("3. Member 1 (VM1): Producer 1, Consumer 2, Spark Job 2", H1)
+p("3. Demo flow: every command, in order", H1)
+p("<b>Demo day:</b> go down the list in order. Run only the steps tagged with your member number; when a step "
+  "has your tag, the step before it has just finished.")
+p("<b>Practising alone</b> (one laptop): run <b>every</b> step top to bottom, whatever its tag. Where a step "
+  "shows a \"Practising alone\" box, use that one. Or run everything automatically with "
+  + C("bash practice_alone.sh") + ".")
+p("<b>Copying:</b> copy one grey box at a time. Every line in a box is a real command. A line ending in "
+  + C("\\") + " continues on the next line, so copy both lines together. Replace "
+  + C("VM2_ZEROTIER_IP") + " and " + C("VM3_ZEROTIER_IP") + " with the real IPs.")
+
+p("Part A: Get ready", H2)
+step(0, "all", "Set up the terminal (every terminal you use)", None,
+     "the prompt starts with " + C("(.venv-wsl)") + " (Member 1) or " + C("(.venv)") + " (Member 4). "
+     "Member 4: if Spark later fails with " + C("'JavaPackage' object is not callable") + ", run the "
+     + C("unset ...") + " line from Member 1's box.",
+     boxes=[("<b>Member 1 (VM1):</b>", M1_SETUP + SETUP_TAIL),
+            ("<b>Members 2 and 3 (VM2, VM3):</b>", M23_SETUP + SETUP_TAIL),
+            ("<b>Member 4 (VM4):</b>", M4_SETUP + SETUP_TAIL),
+            ("<b>Practising alone</b> (one laptop, local cluster):", M1_SETUP + SETUP_TAIL_ALONE)])
+step(1, "2", "Start broker 1 and the controller",
+     "$KAFKA_HOME/bin/kafka-server-start.sh -daemon ~/broker1.properties",
+     "no output. When practising alone: " + C("started broker 1 on port 9092") + ". "
+     + C("format") + " is needed after every WSL restart and is safe to repeat.",
+     alone="./kafka/local/cluster.sh format\n./kafka/local/cluster.sh start 1")
+step(2, "3", "Start broker 2",
+     "$KAFKA_HOME/bin/kafka-server-start.sh -daemon ~/broker2.properties",
+     "no output. When practising alone: " + C("started broker 2 on port 9094") + ".",
+     alone="./kafka/local/cluster.sh start 2")
+step(3, "2", "Check both brokers joined",
+     "$KAFKA_HOME/bin/kafka-broker-api-versions.sh --bootstrap-server $B1 | grep \"id:\"",
+     "two lines, " + C("id: 1") + " and " + C("id: 2") + ".")
+step(4, "2", "Create fresh topics",
+     "./kafka/topics.sh delete\nsleep 5\n./kafka/topics.sh create",
+     "both topics with " + C("PartitionCount: 2") + ", " + C("ReplicationFactor: 2") + ", Isr 1,2. "
+     "This also resets the message counts, so do it before every practice run.")
+step(5, "1+4", "Clear old outputs", CLEAR,
+     "no output. This deletes the previous run's files on purpose; the pipeline makes new ones.")
+step(6, "1+4", "Check the brokers are reachable",
+     "nc -zv VM2_ZEROTIER_IP 9092\nnc -zv VM3_ZEROTIER_IP 9092",
+     C("succeeded") + " twice. " + C("Connection refused") + " means a broker isn't running: redo steps 1-2.",
+     alone="nc -zv localhost 9092\nnc -zv localhost 9094")
+
+p("Part B: Main pipeline (these outputs get graded)", H2)
+step(7, "1", "Producer 1: send the raw orders",
+     "python producer/producer1.py --input order.jsonl",
+     C("published 62 records") + ".")
+step(8, "4", "Consumer 1: save the orders to a file",
+     "python consumer/consumer1.py --output outputs/orders_landed.jsonl",
+     C("landed 62 records") + ".")
+step(9, "4", "Spark Job 1: clean and enrich",
+     "python spark/spark_job1.py --input outputs/orders_landed.jsonl \\\n"
+     "    --output outputs/order_metrics.jsonl",
+     C("valid records: 48") + ", " + C("exact duplicates removed: 4") + ", "
+     + C("enriched records written: 44") + ".")
+step(10, "4", "Producer 2: send the cleaned orders",
+     "python producer/producer2.py --input outputs/order_metrics.jsonl",
+     C("published 44 records") + ", partition 0: 16, partition 1: 28.")
+step(11, "1", "Consumer 2: save the cleaned orders to a file",
+     "python consumer/consumer2.py --output outputs/order_metrics_landed.jsonl",
+     C("landed 44 records") + ", partition 0: 16, partition 1: 28.")
+step(12, "1", "Spark Job 2: build the reports",
+     "python spark/spark_job2.py --input outputs/order_metrics_landed.jsonl \\\n"
+     "    --output-dir outputs",
+     C("6 rows -> restaurant_summary.csv") + " and " + C("4 rows -> city_summary.csv") + ".")
+step(13, "1", "Verify and show the results",
+     "python tests/verify_outputs.py --raw order.jsonl \\\n"
+     "    --metrics outputs/order_metrics_landed.jsonl\n"
+     "cat outputs/restaurant_summary.csv outputs/city_summary.csv",
+     C("OK: 44 enriched records ...") + " and the two tables from section 4.4.")
+
+p("Part C: Failure test, VM3 goes down", H2)
+step(14, "2", "Show the topics before the failure",
+     "./kafka/topics.sh describe\n" + UNDER,
+     "Isr lists 1 and 2 on every partition; the second command prints nothing.")
+step(15, "3", "Stop broker 2 (the failure)",
+     "$KAFKA_HOME/bin/kafka-server-stop.sh",
+     "the broker stops.",
+     alone="./kafka/local/cluster.sh stop 2")
+step(16, "2", "Show the topics after the failure",
+     "sleep 15\nBOOTSTRAP=$B1 ./kafka/topics.sh describe\n" + UNDER,
+     C("Leader: 1") + " and " + C("Isr: 1") + " on every partition; the second command lists all 4 partitions.")
+p("<b>From step 17 to step 23, every Kafka command uses " + C("--bootstrap-servers $B1") + " (VM2 only).</b>", EXP)
+step(17, "1", "Producer 1 with VM3 down",
+     "python producer/producer1.py --bootstrap-servers $B1 --input order.jsonl",
+     C("published 62 records") + ", so writes still work.")
+step(18, "4", "Consumer 1 with VM3 down",
+     "python consumer/consumer1.py --bootstrap-servers $B1 \\\n"
+     "    --output outputs/failover_test/orders_landed.jsonl",
+     C("landed 124 records") + " (62 old + 62 new).")
+step(19, "4", "Spark Job 1 with VM3 down",
+     "python spark/spark_job1.py --input outputs/failover_test/orders_landed.jsonl \\\n"
+     "    --output outputs/failover_test/order_metrics.jsonl",
+     "still " + C("enriched records written: 44") + ", because the extra copies are duplicates.")
+step(20, "4", "Producer 2 with VM3 down",
+     "python producer/producer2.py --bootstrap-servers $B1 \\\n"
+     "    --input outputs/failover_test/order_metrics.jsonl",
+     C("published 44 records") + ".")
+step(21, "1", "Consumer 2 with VM3 down",
+     "python consumer/consumer2.py --bootstrap-servers $B1 \\\n"
+     "    --output outputs/failover_test/order_metrics_landed.jsonl",
+     C("landed 88 records") + " (44 old + 44 new). Only 44? Then step 20 didn't run.")
+step(22, "1", "Spark Job 2 with VM3 down",
+     "python spark/spark_job2.py --input outputs/failover_test/order_metrics_landed.jsonl \\\n"
+     "    --output-dir outputs/failover_test",
+     C("exact duplicates removed: 44") + ", then 6 + 4 rows.")
+step(23, "1", "Show the results are unchanged",
+     "diff outputs/restaurant_summary.csv outputs/failover_test/restaurant_summary.csv\n"
+     "diff outputs/city_summary.csv outputs/failover_test/city_summary.csv \\\n"
+     "    && echo \"SAME RESULTS\"",
+     C("SAME RESULTS") + ".")
+
+p("Part D: Recovery, VM3 comes back", H2)
+step(24, "3", "Restart broker 2",
+     "$KAFKA_HOME/bin/kafka-server-start.sh -daemon ~/broker2.properties",
+     "no output.",
+     alone="./kafka/local/cluster.sh start 2")
+step(25, "2", "Show VM3 rejoined",
+     "sleep 15\n./kafka/topics.sh describe\n" + UNDER,
+     "Isr lists 1 and 2 again; the second command prints nothing. Leader may stay 1 for a few minutes; "
+     "that's normal.")
+p("<b>From step 26 on, no " + C("--bootstrap-servers") + " flag: the commands use both brokers again.</b>", EXP)
+step(26, "1", "Producer 1 after recovery",
+     "python producer/producer1.py --input order.jsonl",
+     C("published 62 records") + ".")
+step(27, "4", "Consumer 1 after recovery",
+     "python consumer/consumer1.py --output outputs/recovery_test/orders_landed.jsonl",
+     C("landed 186 records") + ".")
+step(28, "4", "Spark Job 1 after recovery",
+     "python spark/spark_job1.py --input outputs/recovery_test/orders_landed.jsonl \\\n"
+     "    --output outputs/recovery_test/order_metrics.jsonl",
+     C("enriched records written: 44") + ".")
+step(29, "4", "Producer 2 after recovery",
+     "python producer/producer2.py --input outputs/recovery_test/order_metrics.jsonl",
+     C("published 44 records") + ".")
+step(30, "1", "Consumer 2 after recovery",
+     "python consumer/consumer2.py --output outputs/recovery_test/order_metrics_landed.jsonl",
+     C("landed 132 records") + ". Only 44 or 88? Then step 4, 20 or 29 was skipped.")
+step(31, "1", "Spark Job 2 after recovery",
+     "python spark/spark_job2.py --input outputs/recovery_test/order_metrics_landed.jsonl \\\n"
+     "    --output-dir outputs/recovery_test",
+     "6 + 4 rows.")
+step(32, "1", "Show the results are unchanged",
+     "diff outputs/restaurant_summary.csv outputs/recovery_test/restaurant_summary.csv\n"
+     "diff outputs/city_summary.csv outputs/recovery_test/city_summary.csv \\\n"
+     "    && echo \"SAME RESULTS\"",
+     C("SAME RESULTS") + ". <b>Demo finished.</b> When practising alone, stop the brokers with "
+     + C("./kafka/local/cluster.sh stop all") + ".")
+
+p("Why the numbers grow", H2)
+table([
+    ["", "Main run (7-13)", "VM3 down (17-23)", "VM3 back (26-32)"],
+    [C("orders") + " topic / Consumer 1", "62", "124", "186"],
+    ["Spark Job 1 output", "44", "44", "44"],
+    [C("order_metrics") + " topic / Consumer 2", "44", "88", "132"],
+    ["CSVs", "original", "identical", "identical"],
+], [55 * mm, 38 * mm, 38 * mm, 39 * mm])
+p("Kafka keeps every message, so each producer run adds to the topics. The extra copies are exact duplicates, "
+  "so Spark removes them and the results never change. Step 4 empties the topics again.")
+
+# ================================================================ 4 member 1
+story.append(PageBreak())
+p("4. Member 1 (VM1): Producer 1, Consumer 2, Spark Job 2", H1)
 p("Member 1 runs three programs: <b>producer1.py</b> at the start, then later <b>consumer2.py</b> and "
   "<b>spark_job2.py</b> at the end. Two shared helper files sit behind them: " + C("publish.py")
   + " and " + C("landing.py") + ".")
 
-p("3.1 producer1.py: post the raw orders", H2)
+p("4.1 producer1.py: post the raw orders", H2)
 p("Reads " + C("order.jsonl") + " line by line and sends each line to topic <b>orders</b>. All of the "
   "real work is in the shared helper " + C("publish.py") + ".")
 bullets([
@@ -233,7 +423,7 @@ bullets([
     "so the printed \"62 sent\" means 62 <i>confirmed</i>, along with which partition each one landed in.",
 ])
 
-p("3.2 consumer2.py + landing.py: collect the cleaned orders", H2)
+p("4.2 consumer2.py + landing.py: collect the cleaned orders", H2)
 p("Reads <i>everything</i> from topic <b>order_metrics</b> and saves it to " + C("order_metrics_landed.jsonl")
   + " (44 lines). Member 4's consumer1.py is the same code with topic <b>orders</b>.")
 bullets([
@@ -247,7 +437,7 @@ bullets([
     "Prints how many records came from each partition: <b>16 from partition 0, 28 from partition 1</b>.",
 ])
 
-p("3.3 spark_job2.py: make the two reports", H2)
+p("4.3 spark_job2.py: make the two reports", H2)
 p("Reads " + C("order_metrics_landed.jsonl") + " and writes <b>restaurant_summary.csv</b> "
   "(6 rows) and <b>city_summary.csv</b> (4 rows).")
 table([
@@ -267,7 +457,7 @@ table([
 p(C(".cache()") + " keeps the deduplicated data in memory because it is used by two reports. "
   "Without it Spark would recompute it for each one.")
 
-p("3.4 Final outputs (know these by heart)", H2)
+p("4.4 Final outputs (know these by heart)", H2)
 table([
     ["restaurant", "orders", "avg amount", "avg prep", "avg delivery", "delayed", "delay %"],
     ["R01", "8", "548.5", "13.13", "22.0", "4", "50.0"],
@@ -287,72 +477,16 @@ table([
 p("<b>Easy cross-check:</b> each restaurant is in exactly one city, so Pune = R05 and Hyderabad = R06. "
   "Bengaluru = R01 + R02: 8+8 = 16 orders, 4+8 = 12 delayed, 12/16 = 75%. Order counts add up to 44; delayed "
   "orders add up to 33 of 44. Example: R05 delay % = 100 x 3 / 7 = 42.857 -> <b>42.86</b>.")
-
-demo_intro(
-    "3.5",
+summary_box(
     "0, 5, 6, 7, 11, 12, 13, 17, 21, 22, 23, 26, 30, 31, 32. You start and finish every run.",
     "62 published; 44 landed (16 / 28); 6 + 4 rows; verify OK; both CSVs; " + C("SAME RESULTS")
     + " after the failure and after recovery.",
     "why Producer 1 has no key; why the consumer reads every partition from offset 0 and stops by itself; "
     "how Job 2 dedupes, groups and rounds; why the counts grow to 88 and 132 while the CSVs stay the same.")
-step(0, "Setup (every terminal)", None,
-     "cd /mnt/c/Users/Aryan/Desktop/BD-Assignment\n"
-     "source .venv-wsl/bin/activate\n"
-     "export KAFKA_HOME=~/kafka\n"
-     "export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64\n"
-     "unset SPARK_HOME HADOOP_HOME HADOOP_CONF_DIR PYSPARK_PYTHON PYSPARK_DRIVER_PYTHON\n" + SETUP_TAIL,
-     "the prompt starts with " + C("(.venv-wsl)") + ".")
-step(5, "Clear old outputs", "Member 2, step 4", CLEAR)
-step(6, "Check the brokers are reachable", "step 5", NC, C("succeeded") + " twice.")
-step(7, "Producer 1", "step 6", "python producer/producer1.py --input order.jsonl",
-     C("published 62 records") + ".")
-step(11, "Consumer 2", "Member 4, step 10",
-     "python consumer/consumer2.py --output outputs/order_metrics_landed.jsonl",
-     C("landed 44 records") + ", partition 0: 16, partition 1: 28.")
-step(12, "Spark Job 2", "step 11",
-     "python spark/spark_job2.py --input outputs/order_metrics_landed.jsonl \\\n"
-     "    --output-dir outputs",
-     C("6 rows -> restaurant_summary.csv") + " and " + C("4 rows -> city_summary.csv") + ".")
-step(13, "Verify and show the results", "step 12",
-     "python tests/verify_outputs.py --raw order.jsonl \\\n"
-     "    --metrics outputs/order_metrics_landed.jsonl\n"
-     "cat outputs/restaurant_summary.csv outputs/city_summary.csv",
-     C("OK: 44 enriched records ...") + " and the two tables from section 3.4.")
-step(17, "Producer 1 with VM3 down", "Member 2, step 16",
-     "python producer/producer1.py --bootstrap-servers $B1 --input order.jsonl",
-     C("published 62 records") + ", so writes still work.")
-step(21, "Consumer 2 with VM3 down", "Member 4, step 20",
-     "python consumer/consumer2.py --bootstrap-servers $B1 \\\n"
-     "    --output outputs/failover_test/order_metrics_landed.jsonl",
-     C("landed 88 records") + " (44 old + 44 new).")
-step(22, "Spark Job 2 with VM3 down", "step 21",
-     "python spark/spark_job2.py --input outputs/failover_test/order_metrics_landed.jsonl \\\n"
-     "    --output-dir outputs/failover_test",
-     C("exact duplicates removed: 44") + ", then 6 + 4 rows.")
-step(23, "Show the results are unchanged", "step 22",
-     "diff outputs/restaurant_summary.csv outputs/failover_test/restaurant_summary.csv\n"
-     "diff outputs/city_summary.csv outputs/failover_test/city_summary.csv \\\n"
-     "    && echo \"SAME RESULTS\"",
-     C("SAME RESULTS") + ". Tell Member 3 to restart the broker.")
-step(26, "Producer 1 after recovery", "Member 2, step 25",
-     "python producer/producer1.py --input order.jsonl",
-     C("published 62 records") + ".")
-step(30, "Consumer 2 after recovery", "Member 4, step 29",
-     "python consumer/consumer2.py --output outputs/recovery_test/order_metrics_landed.jsonl",
-     C("landed 132 records") + ".")
-step(31, "Spark Job 2 after recovery", "step 30",
-     "python spark/spark_job2.py --input outputs/recovery_test/order_metrics_landed.jsonl \\\n"
-     "    --output-dir outputs/recovery_test",
-     "6 + 4 rows.")
-step(32, "Show the results are unchanged", "step 31",
-     "diff outputs/restaurant_summary.csv outputs/recovery_test/restaurant_summary.csv\n"
-     "diff outputs/city_summary.csv outputs/recovery_test/city_summary.csv \\\n"
-     "    && echo \"SAME RESULTS\"",
-     C("SAME RESULTS") + ". <b>Demo finished.</b>")
 
-# ================================================================ 4 member 2
+# ================================================================ 5 member 2
 story.append(PageBreak())
-p("4. Member 2 (VM2): Broker 1 + KRaft controller (the boss)", H1)
+p("5. Member 2 (VM2): Broker 1 + KRaft controller (the boss)", H1)
 bullets([
     "Runs Kafka with " + C("process.roles=broker,controller") + ", " + C("node.id=1") + ".",
     "<b>KRaft</b> = Kafka manages itself, with no separate ZooKeeper. The controller keeps the cluster's \"register\" "
@@ -362,48 +496,17 @@ bullets([
     C("min.insync.replicas=1") + ": writes still succeed with only one copy alive (needed while VM3 is off).",
     C("auto.create.topics.enable=false") + ": topics are only created on purpose, so a typo can't create a wrong topic.",
     "In the demo, Member 2 shows the cluster state: both brokers, the topic config, and the ISR before, during "
-    "and after the failure (see section 7 for how to read it).",
+    "and after the failure (section 8 explains how to read it).",
 ])
-
-demo_intro(
-    "4.1",
+summary_box(
     "0, 1, 3, 4, 14, 16, 25. You show the cluster state.",
     "both broker ids; topics with 2 partitions and RF 2; Isr 1,2 before, then Leader 1 / Isr 1 after VM3 stops, "
     "then Isr 1,2 again after it restarts.",
     "KRaft and what the controller does; node.id, listeners vs advertised.listeners, ports 9092/9093; "
     "cluster ID; min.insync.replicas=1; Leader vs Replicas vs Isr; why VM2 can't be stopped.")
-step(0, "Setup (every terminal)", None,
-     "cd ~/BD-Assignment\n"
-     "export KAFKA_HOME=~/kafka\n" + SETUP_TAIL)
-step(1, "Start broker 1 and the controller", "step 0",
-     "$KAFKA_HOME/bin/kafka-server-start.sh -daemon ~/broker1.properties",
-     "no output. Tell Member 3 to start.")
-step(3, "Check both brokers joined", "Member 3, step 2",
-     "$KAFKA_HOME/bin/kafka-broker-api-versions.sh --bootstrap-server $B1 | grep \"id:\"",
-     "two lines, " + C("id: 1") + " and " + C("id: 2") + ".")
-step(4, "Create fresh topics", "step 3",
-     "./kafka/topics.sh delete\n"
-     "sleep 5\n"
-     "./kafka/topics.sh create",
-     "both topics with " + C("PartitionCount: 2") + ", " + C("ReplicationFactor: 2") + ", "
-     "Isr 1,2. Tell Members 1 and 4 to start.")
-step(14, "Show the topics before the failure", "Member 1, step 13",
-     "./kafka/topics.sh describe\n" + UNDER,
-     "Isr lists 1 and 2 on every partition; the second command prints nothing.")
-step(16, "Show the topics after the failure", "Member 3, step 15",
-     "sleep 15\n"
-     "BOOTSTRAP=$B1 ./kafka/topics.sh describe\n" + UNDER,
-     C("Leader: 1") + " and " + C("Isr: 1") + " on every partition; "
-     "the second command lists all 4 partitions. Tell Member 1 to start.")
-step(25, "Show VM3 rejoined", "Member 3, step 24",
-     "sleep 15\n"
-     "./kafka/topics.sh describe\n" + UNDER,
-     "Isr lists 1 and 2 again; the second command prints nothing. Leader may stay 1 for a few minutes; "
-     "that's normal. Tell Member 1 to start.")
 
-# ================================================================ 5 member 3
-story.append(PageBreak())
-p("5. Member 3 (VM3): Broker 2 (the backup)", H1)
+# ================================================================ 6 member 3
+p("6. Member 3 (VM3): Broker 2 (the backup)", H1)
 bullets([
     "Runs Kafka with " + C("process.roles=broker") + " only, " + C("node.id=2") + ".",
     "Points at VM2:9093 to join and is formatted with <b>VM2's cluster ID</b> (it must not create its own cluster).",
@@ -411,30 +514,16 @@ bullets([
     "When it stops, VM2's controller notices the missing heartbeats, removes it from the ISR and makes broker 1 "
     "the leader everywhere. When it restarts, it copies what it missed and rejoins the ISR.",
 ])
-
-demo_intro(
-    "5.1",
+summary_box(
     "0, 2, 15, 24. Your broker is the one that fails.",
     "the broker stopping and starting again. Then point to Member 2's describe output, where Isr shrinks to 1 "
     "and grows back to 1,2.",
     "what happens step by step when VM3 stops (heartbeats stop, it's fenced, leadership moves to broker 1); "
     "how it catches up and rejoins the ISR; why VM3 uses VM2's cluster ID; what RF 2 protects against.")
-step(0, "Setup (every terminal)", None,
-     "cd ~/BD-Assignment\n"
-     "export KAFKA_HOME=~/kafka")
-step(2, "Start broker 2", "Member 2, step 1",
-     "$KAFKA_HOME/bin/kafka-server-start.sh -daemon ~/broker2.properties",
-     "no output. Tell Member 2.")
-step(15, "Stop broker 2 (the failure)", "Member 2, step 14",
-     "$KAFKA_HOME/bin/kafka-server-stop.sh",
-     "the broker stops. Tell Member 2.")
-step(24, "Restart broker 2 (recovery)", "Member 1, step 23",
-     "$KAFKA_HOME/bin/kafka-server-start.sh -daemon ~/broker2.properties",
-     "no output. Tell Member 2.")
 
-# ================================================================ 6 member 4
+# ================================================================ 7 member 4
 story.append(PageBreak())
-p("6. Member 4 (VM4): Consumer 1, Spark Job 1, Producer 2 (the cleaning step)", H1)
+p("7. Member 4 (VM4): Consumer 1, Spark Job 1, Producer 2 (the cleaning step)", H1)
 bullets([
     "<b>consumer1.py</b>: same code as consumer2, but reads topic <b>orders</b> -> " + C("orders_landed.jsonl") + " (62 lines).",
     "<b>spark_job1.py</b>: the heart of the project. It <b>throws away bad records</b>, <b>removes duplicates</b>, and "
@@ -466,60 +555,16 @@ table([
 ], [50 * mm, 120 * mm])
 p("<b>Midnight trick:</b> it uses full date+time, not just the time of day. T040023 picked up 23:20 and delivered "
   "00:02 the next day = <b>42 min</b>, not -1398. The time zone is set to UTC so daylight saving can't shift anything.")
-
-demo_intro(
-    "6.1",
+summary_box(
     "0, 5, 6, 8, 9, 10, 18, 19, 20, 27, 28, 29. You do the middle of every run.",
     "62 landed; the drop report (14 dropped, 48 valid, 4 duplicates, 44 written); 44 published, split 16 / 28; "
     "still 44 enriched with VM3 down.",
     "each cleaning rule and the 62 -> 48 -> 44 funnel; the 7 new columns and the midnight case (T040023 = 42 min); "
     "why Producer 2 is keyed by order_id; why Job 1 still gives 44 from 124 lines.")
-step(0, "Setup (every terminal)", None,
-     "cd ~/BD-Assignment\n"
-     "source .venv/bin/activate\n"
-     "export KAFKA_HOME=~/kafka\n" + SETUP_TAIL,
-     "the prompt starts with " + C("(.venv)") + ". If Spark later fails with "
-     + C("'JavaPackage' object is not callable") + ", run "
-     + C("unset SPARK_HOME HADOOP_HOME HADOOP_CONF_DIR PYSPARK_PYTHON PYSPARK_DRIVER_PYTHON") + ".")
-step(5, "Clear old outputs", "Member 2, step 4", CLEAR)
-step(6, "Check the brokers are reachable", "step 5", NC, C("succeeded") + " twice.")
-step(8, "Consumer 1", "Member 1, step 7",
-     "python consumer/consumer1.py --output outputs/orders_landed.jsonl",
-     C("landed 62 records") + ".")
-step(9, "Spark Job 1", "step 8",
-     "python spark/spark_job1.py --input outputs/orders_landed.jsonl \\\n"
-     "    --output outputs/order_metrics.jsonl",
-     C("valid records: 48") + ", " + C("exact duplicates removed: 4") + ", "
-     + C("enriched records written: 44") + ".")
-step(10, "Producer 2", "step 9",
-     "python producer/producer2.py --input outputs/order_metrics.jsonl",
-     C("published 44 records") + ", partition 0: 16, partition 1: 28. Tell Member 1.")
-step(18, "Consumer 1 with VM3 down", "Member 1, step 17",
-     "python consumer/consumer1.py --bootstrap-servers $B1 \\\n"
-     "    --output outputs/failover_test/orders_landed.jsonl",
-     C("landed 124 records") + " (62 old + 62 new).")
-step(19, "Spark Job 1 with VM3 down", "step 18",
-     "python spark/spark_job1.py --input outputs/failover_test/orders_landed.jsonl \\\n"
-     "    --output outputs/failover_test/order_metrics.jsonl",
-     "still " + C("enriched records written: 44") + ".")
-step(20, "Producer 2 with VM3 down", "step 19",
-     "python producer/producer2.py --bootstrap-servers $B1 \\\n"
-     "    --input outputs/failover_test/order_metrics.jsonl",
-     C("published 44 records") + ". Tell Member 1.")
-step(27, "Consumer 1 after recovery", "Member 1, step 26",
-     "python consumer/consumer1.py --output outputs/recovery_test/orders_landed.jsonl",
-     C("landed 186 records") + ".")
-step(28, "Spark Job 1 after recovery", "step 27",
-     "python spark/spark_job1.py --input outputs/recovery_test/orders_landed.jsonl \\\n"
-     "    --output outputs/recovery_test/order_metrics.jsonl",
-     C("enriched records written: 44") + ".")
-step(29, "Producer 2 after recovery", "step 28",
-     "python producer/producer2.py --input outputs/recovery_test/order_metrics.jsonl",
-     C("published 44 records") + ". Tell Member 1.")
 
-# ================================================================ 7 failure test explained
+# ================================================================ 8 failure test explained
 story.append(PageBreak())
-p("7. The failure test explained (whole team)", H1)
+p("8. The failure test explained (whole team)", H1)
 story.append(Preformatted(
     "Before (both up):    orders P0  Leader: 2  Replicas: 2,1  Isr: 2,1\n"
     "                     orders P1  Leader: 1  Replicas: 1,2  Isr: 1,2\n"
@@ -529,12 +574,11 @@ story.append(Preformatted(
 story.append(Spacer(1, 4))
 p("<b>Leader</b> = the broker currently serving that partition. <b>Replicas</b> = where copies are <i>supposed</i> "
   "to live (doesn't change). <b>Isr</b> = copies that are currently up to date (shrinks to just 1 while VM3 is off).")
-p("<b>Why the counts grow:</b> Kafka keeps old messages, so each run adds to the topics: orders 62 -> 124 -> 186, "
-  "order_metrics 44 -> 88 -> 132. Those extra copies are exact duplicates, so Job 1 still outputs <b>44</b> and the "
-  "CSVs are byte-identical (checked with " + C("diff") + ").")
+p("Producing still works with VM3 down because the producer uses " + C("acks=all") + " (wait for every <i>in-sync</i> "
+  "copy, now just broker 1) and the brokers allow " + C("min.insync.replicas=1") + ".")
 
-# ================================================================ 8 glossary
-p("8. Key words in one line each", H1)
+# ================================================================ 9 glossary
+p("9. Key words in one line each", H1)
 table([
     ["Term", "Simple meaning"],
     ["Broker", "A Kafka server that stores messages (VM2, VM3)."],
@@ -554,8 +598,8 @@ table([
     ["Lazy evaluation", "Spark only plans the work; it runs when an action (count, collect) is called."],
 ], [42 * mm, 128 * mm])
 
-# ================================================================ 9 viva
-p("9. Top viva questions, short answers", H1)
+# ================================================================ 10 viva
+p("10. Top viva questions, short answers", H1)
 qa("Why use Kafka instead of just copying files?",
    "It separates the stages (VM1 and VM4 never talk directly), stores the data reliably in two copies, and lets "
    "any stage re-read the data. The spec also forbids copying the file.")
@@ -590,8 +634,8 @@ qa("How do you know the outputs are correct?",
 qa("Why Spark for only 62 records?",
    "The assignment is about the architecture. The same code would work on millions of rows or on a real cluster.")
 
-# ================================================================ 10 cheat sheet
-p("10. Numbers to remember", H1)
+# ================================================================ 11 cheat sheet
+p("11. Numbers to remember", H1)
 table([
     ["Item", "Value"],
     ["Raw lines", "62"],

@@ -17,7 +17,7 @@ say "continue from CHAT_SUMMARY.md".
 |---|---|
 | `DEMO_RUNBOOK.md` | **The demo script.** Steps 0-32, each labelled with the VM that runs it, plus "Alone" commands for solo practice |
 | `practice_alone.sh` | Runs all 33 steps on one laptop: `bash practice_alone.sh` in WSL (~10 min) |
-| `Simple_Guide.pdf` | Plain-English guide for the team. Section 7 has one page per member with copyable commands and what to show the evaluator |
+| `Simple_Guide.pdf` | Plain-English guide for the team. Section 2 = demo-day overview; sections 3-6 = one per member, each with the explanation followed by that member's copyable demo commands |
 | `tools/make_simple_guide.py` | Rebuilds the PDF: `python tools/make_simple_guide.py Simple_Guide.pdf` (edit this, don't edit the PDF) |
 | `README.md` | Added per-VM install prerequisites and a link to the runbook |
 | `demo_commands.md` | Detailed reference and troubleshooting; step 10 now has the full failure and recovery test |
@@ -69,5 +69,5 @@ the old messages. Spark removes the exact duplicates, so the output is always
       demo_commands.md section 4.
 - [ ] At least one full team rehearsal over ZeroTier with DEMO_RUNBOOK.md.
 - [ ] Demo day: everyone runs `git pull` and clears old outputs (step 5).
-- [ ] Viva prep for everyone: Simple_Guide.pdf sections 4-6, and each
-      member's "be ready to explain" list in section 7.
+- [ ] Viva prep for everyone: Simple_Guide.pdf sections 7-10, and the
+      "be ready to explain" box in each member's section (3-6).

@@ -94,8 +94,11 @@ day before)"**:
   and run `sudo ufw allow in on zt+`.
 - **C (for now, Member 2's machine):** `~/broker2.properties` on port 9094, data
   in `~/kafka-data2`, formatted with the same cluster ID.
-- **D (Member 3, later):** `~/broker2.properties` with VM3's IP and Member 2's
-  cluster ID.
+- **Member 3's own box** (VM3's IP and Member 2's cluster ID) is hidden while
+  VM2 and VM3 share 10.31.88.79; it appears automatically once `VM3_ADDR` in
+  `tools/make_simple_guide.py` gets Member 3's own IP. The PDF currently has
+  **no placeholders**: box A uses VM2's real repo path
+  (`~/distributed-food-ordering/BD-Assignment`, constant `VM2_REPO`).
 Tested on Aryan's laptop with 127.0.0.1: both brokers start and advertise the
 given IP. Also: all repo scripts are run as `bash kafka/...` (the copy lost its
 executable flag → "Permission denied"), and `$KAFKA_HOME/bin/...` commands are

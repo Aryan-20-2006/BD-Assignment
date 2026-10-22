@@ -100,8 +100,10 @@ def step(num, who, title, cmds, expect=None, alone=None, boxes=None):
 # Broker addresses (ZeroTier IP:port). Change these two lines when the team changes.
 # For now VM2's machine also plays VM3 (second broker on port 9094) until Member 3 joins;
 # then set VM3_ADDR = "<VM3's ZeroTier IP>:9092".
+VM1_ADDR = "10.31.88.84"   # Member 1's laptop (only connects out; not used in commands)
 VM2_ADDR = "10.31.88.79:9092"
 VM3_ADDR = "10.31.88.79:9094"
+VM2_REPO = "~/distributed-food-ordering/BD-Assignment"   # where the repo lives on VM2
 
 SETUP_TAIL = ("export B1=%s\n"
               "export B2=%s\n"
@@ -266,12 +268,12 @@ p("One-time setup (the day before, not in front of the TA)", H2)
 p("Do this once per machine. It creates the broker config files that steps 1, 2 and 20 use, with the right "
   "ZeroTier IPs already in them, so the brokers never announce " + C("localhost") + ".")
 step("A", "all", "Make ~/BD-Assignment point at your copy of the repo (Linux VMs)",
-     "cd PATH/TO/YOUR/REPO\n"
+     "cd %s\n"
      'ln -sfn "$PWD" ~/BD-Assignment\n'
-     "ls ~/BD-Assignment/kafka",
-     "the " + C("ls") + " lists " + C("local  topics.sh  vm") + ". Replace " + C("PATH/TO/YOUR/REPO")
-     + " with wherever you unzipped or cloned it (e.g. " + C("~/distributed-food-ordering/BD-Assignment")
-     + "). After this, every " + C("cd ~/BD-Assignment") + " in this guide works. Member 1 (WSL) skips this.")
+     "ls ~/BD-Assignment/kafka" % VM2_REPO,
+     "the " + C("ls") + " lists " + C("local  topics.sh  vm") + ". " + C(VM2_REPO) + " is where the repo is on "
+     "VM2; on another VM, " + C("cd") + " to wherever you unzipped or cloned it instead. After this, every "
+     + C("cd ~/BD-Assignment") + " in this guide works. Member 1 (WSL) skips this.")
 step("B", "2", "Broker 1 config, cluster ID, storage, firewall",
      "export KAFKA_HOME=~/kafka\n"
      "cd ~/BD-Assignment\n"
@@ -300,8 +302,10 @@ if SAME_HOST:
          % (VM2_IP, VM3_ADDR),
          "the " + C("grep") + " shows " + C("0.0.0.0:9094") + ", " + C(VM3_ADDR) + " and "
          + C("log.dirs=/home/.../kafka-data2") + ". Then run steps 1 and 2 below on this machine. "
-         "When Member 3 joins, they do box D below on their own VM instead.")
-step("C" if not SAME_HOST else "D", "3", "Broker 2 config and storage (on VM3)",
+         "When Member 3 joins, they get their own setup box here and broker 2 moves to their VM.")
+# Member 3's own box only appears once VM3 is a separate machine (VM3_ADDR has its own IP).
+if not SAME_HOST:
+  step("C", "3", "Broker 2 config and storage (on VM3)",
      "export KAFKA_HOME=~/kafka\n"
      "cd ~/BD-Assignment\n"
      'sed -e "s/VM2_ADDRESS/%s/g" -e "s/VM3_ADDRESS/%s/g" \\\n'

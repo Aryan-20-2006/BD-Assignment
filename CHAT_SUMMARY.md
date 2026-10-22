@@ -80,6 +80,27 @@ Edit the script, not the PDF.
   `tools/make_simple_guide.py` and rebuild the PDF.
 - Only VM2's and VM3's IPs go into commands (they're the brokers).
 
+## PDF fix: one-time setup section (added 2026-10-22)
+
+Root cause of the rehearsal problems: the PDF never told VM2/VM3 how to create
+`~/broker1.properties` / `~/broker2.properties`, so the teammate used the
+localhost practice configs. Section 3 now starts with **"One-time setup (the
+day before)"**:
+- **A (everyone on a Linux VM):** `ln -sfn "$PWD" ~/BD-Assignment` from the
+  repo folder, so `cd ~/BD-Assignment` always works (this was the "No such
+  file or directory").
+- **B (Member 2):** generate `~/broker1.properties` from `kafka/vm/` with VM2's
+  IP, data in `~/kafka-data` (no sudo needed), make the cluster ID, format,
+  and run `sudo ufw allow in on zt+`.
+- **C (for now, Member 2's machine):** `~/broker2.properties` on port 9094, data
+  in `~/kafka-data2`, formatted with the same cluster ID.
+- **D (Member 3, later):** `~/broker2.properties` with VM3's IP and Member 2's
+  cluster ID.
+Tested on Aryan's laptop with 127.0.0.1: both brokers start and advertise the
+given IP. Also: all repo scripts are run as `bash kafka/...` (the copy lost its
+executable flag → "Permission denied"), and `$KAFKA_HOME/bin/...` commands are
+no longer wrapped in quotes (a missed first `"` left bash waiting).
+
 ## Two-person rehearsal (2026-10-22): unfinished
 
 The teammate's VM (10.31.88.79) runs both brokers; Aryan runs the VM1 + VM4

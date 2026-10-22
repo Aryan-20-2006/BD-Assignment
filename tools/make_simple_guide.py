@@ -232,6 +232,10 @@ bullets([
     "Use a <b>Linux / WSL terminal</b>, not PowerShell. The prompt must look like "
     + C("user@machine:...$") + ", not " + C("PS C:\\...>") + ".",
     "Do step 0 in <b>every</b> terminal you'll use.",
+    "Repo scripts are run as " + C("bash kafka/...sh") + ". If you see " + C("Permission denied")
+    + " for " + C("./kafka/...") + ", the copy lost its executable flag: run "
+    + C("chmod +x kafka/*.sh kafka/local/*.sh practice_alone.sh") + " once, or put " + C("bash")
+    + " in front.",
     "Never stop VM2. Don't edit " + C("order.jsonl") + ".",
     "Spark's " + C("WARN") + " lines are normal. Only a " + C("Traceback") + " means a failure.",
 ])
@@ -248,10 +252,69 @@ p("<b>Copying:</b> copy one grey box at a time. A line ending in " + C("\\") + "
   + C(VM3_ADDR) + ". In the observer commands, replace " + C("teamXX") + " with your team number.")
 if VM2_ADDR.split(":")[0] == VM3_ADDR.split(":")[0]:
     p("<b>For now VM2's machine also runs VM3's broker</b> (second broker on port 9094), because Member 3 hasn't "
-      "joined yet. On that machine, use the \"Practising alone\" commands for steps 1, 2, 18 and 20 "
-      "(step 18 must be " + C("pkill -9 -f broker2.properties") + ": " + C("pkill -9 -f kafka.Kafka")
-      + " would kill both brokers). Its brokers must listen on " + C("0.0.0.0") + " and advertise its ZeroTier "
-      "IP, and its firewall must allow ports 9092-9094.", BOX)
+      "joined yet. That machine does the one-time setup box marked \"for now\" below, then runs both Member 2's "
+      "and Member 3's steps. Only step 18 differs there: use " + C("pkill -9 -f broker2.properties")
+      + ", because " + C("pkill -9 -f kafka.Kafka") + " would kill both brokers.", BOX)
+
+# ---------------------------------------------------------------- one-time setup (the day before)
+VM2_IP = VM2_ADDR.split(":")[0]
+VM3_IP = VM3_ADDR.split(":")[0]
+SAME_HOST = VM2_IP == VM3_IP
+DATA_SED = '-e "s#/var/lib/kafka/data#$HOME/kafka-data#"'
+
+p("One-time setup (the day before, not in front of the TA)", H2)
+p("Do this once per machine. It creates the broker config files that steps 1, 2 and 20 use, with the right "
+  "ZeroTier IPs already in them, so the brokers never announce " + C("localhost") + ".")
+step("A", "all", "Make ~/BD-Assignment point at your copy of the repo (Linux VMs)",
+     "cd PATH/TO/YOUR/REPO\n"
+     'ln -sfn "$PWD" ~/BD-Assignment\n'
+     "ls ~/BD-Assignment/kafka",
+     "the " + C("ls") + " lists " + C("local  topics.sh  vm") + ". Replace " + C("PATH/TO/YOUR/REPO")
+     + " with wherever you unzipped or cloned it (e.g. " + C("~/distributed-food-ordering/BD-Assignment")
+     + "). After this, every " + C("cd ~/BD-Assignment") + " in this guide works. Member 1 (WSL) skips this.")
+step("B", "2", "Broker 1 config, cluster ID, storage, firewall",
+     "export KAFKA_HOME=~/kafka\n"
+     "cd ~/BD-Assignment\n"
+     "$KAFKA_HOME/bin/kafka-server-stop.sh\n"
+     "while pgrep -f kafka.Kafka > /dev/null; do sleep 1; done\n"
+     'sed -e "s/VM2_ADDRESS/%s/g" %s \\\n'
+     "    kafka/vm/vm2-broker1.properties > ~/broker1.properties\n"
+     "grep -E \"voters|advertised|log.dirs\" ~/broker1.properties\n"
+     "$KAFKA_HOME/bin/kafka-storage.sh random-uuid > ~/cluster.id\n"
+     "cat ~/cluster.id\n"
+     '$KAFKA_HOME/bin/kafka-storage.sh format -t "$(cat ~/cluster.id)" -c ~/broker1.properties\n'
+     "sudo ufw allow in on zt+" % (VM2_IP, DATA_SED),
+     "the " + C("grep") + " shows " + C(VM2_IP) + " (not " + C("VM2_ADDRESS") + " or " + C("localhost")
+     + ") and " + C("log.dirs=/home/...") + "; " + C("cat") + " prints the cluster ID: <b>send it to Member 3</b>; "
+     + C("format") + " ends with " + C("Formatting ...") + ". The " + C("ufw") + " line lets ZeroTier traffic "
+     "through the firewall. If " + C("format") + " says the directory is already formatted, run "
+     + C("rm -rf ~/kafka-data") + " and repeat that line.")
+if SAME_HOST:
+    step("C", "2", "For now: broker 2 on the same machine (port 9094)",
+         "cd ~/BD-Assignment\n"
+         'sed -e "s/VM2_ADDRESS/%s/g" -e "s/VM3_ADDRESS:9092/%s/" \\\n'
+         '    -e "s#0.0.0.0:9092#0.0.0.0:9094#" -e "s#/var/lib/kafka/data#$HOME/kafka-data2#" \\\n'
+         "    kafka/vm/vm3-broker2.properties > ~/broker2.properties\n"
+         "grep -E \"listeners|voters|log.dirs\" ~/broker2.properties\n"
+         '$KAFKA_HOME/bin/kafka-storage.sh format -t "$(cat ~/cluster.id)" -c ~/broker2.properties'
+         % (VM2_IP, VM3_ADDR),
+         "the " + C("grep") + " shows " + C("0.0.0.0:9094") + ", " + C(VM3_ADDR) + " and "
+         + C("log.dirs=/home/.../kafka-data2") + ". Then run steps 1 and 2 below on this machine. "
+         "When Member 3 joins, they do box D below on their own VM instead.")
+step("C" if not SAME_HOST else "D", "3", "Broker 2 config and storage (on VM3)",
+     "export KAFKA_HOME=~/kafka\n"
+     "cd ~/BD-Assignment\n"
+     'sed -e "s/VM2_ADDRESS/%s/g" -e "s/VM3_ADDRESS/%s/g" \\\n'
+     "    %s \\\n"
+     "    kafka/vm/vm3-broker2.properties > ~/broker2.properties\n"
+     "grep -E \"voters|advertised|log.dirs\" ~/broker2.properties\n"
+     "$KAFKA_HOME/bin/kafka-storage.sh format -t CLUSTER_ID_FROM_MEMBER_2 \\\n"
+     "    -c ~/broker2.properties\n"
+     "sudo ufw allow in on zt+" % (VM2_IP, VM3_IP if not SAME_HOST else "VM3_ZEROTIER_IP", DATA_SED),
+     "the " + C("grep") + " shows VM2's IP in " + C("voters") + " and VM3's IP in " + C("advertised")
+     + ". Replace " + C("CLUSTER_ID_FROM_MEMBER_2") + " with the ID Member 2 sent. Never run "
+     + C("random-uuid") + " on VM3." + (" <b>Skip this box for now</b> (box C covers it) until Member 3 joins."
+                                        if SAME_HOST else ""))
 
 p("Before the checkpoints", H2)
 step(0, "all", "Set up the terminal (every terminal you use)", None,
@@ -265,28 +328,28 @@ step(0, "all", "Set up the terminal (every terminal you use)", None,
 step(1, "2", "Start broker 1 and the controller",
      "$KAFKA_HOME/bin/kafka-server-start.sh -daemon ~/broker1.properties",
      "no output. (Alone: " + C("format") + " is needed after every WSL restart and is safe to repeat.)",
-     alone="./kafka/local/cluster.sh format\n./kafka/local/cluster.sh start 1")
+     alone="bash kafka/local/cluster.sh format\nbash kafka/local/cluster.sh start 1")
 step(2, "3", "Start broker 2",
      "$KAFKA_HOME/bin/kafka-server-start.sh -daemon ~/broker2.properties",
      "no output.",
-     alone="./kafka/local/cluster.sh start 2")
+     alone="bash kafka/local/cluster.sh start 2")
 step(3, "2", "Create fresh topics",
-     "./kafka/topics.sh delete\nsleep 5\n./kafka/topics.sh create",
+     "bash kafka/topics.sh delete\nsleep 5\nbash kafka/topics.sh create",
      "both topics with " + C("PartitionCount: 2") + ", " + C("ReplicationFactor: 2") + ", Isr 1,2.")
 step(4, "1+4", "Clear old outputs", CLEAR,
      "no output. The TA only accepts outputs made during the live run.")
 
 p("Checkpoint 1: cluster", H2)
 step(5, "2", "Brokers reachable, VM2 is the controller, topics exist",
-     '"$KAFKA_HOME/bin/kafka-broker-api-versions.sh" --bootstrap-server "$BS" | grep "id:"\n'
-     '"$KAFKA_HOME/bin/kafka-metadata-quorum.sh" --bootstrap-server "$BS" describe --status\n'
-     '"$KAFKA_HOME/bin/kafka-topics.sh" --bootstrap-server "$BS" --list',
+     '$KAFKA_HOME/bin/kafka-broker-api-versions.sh --bootstrap-server "$BS" | grep "id:"\n'
+     '$KAFKA_HOME/bin/kafka-metadata-quorum.sh --bootstrap-server "$BS" describe --status\n'
+     '$KAFKA_HOME/bin/kafka-topics.sh --bootstrap-server "$BS" --list',
      "two brokers, " + C("id: 1") + " and " + C("id: 2") + "; " + C("LeaderId: 1") + " (VM2 is the controller); "
      + C("orders") + " and " + C("order_metrics") + ".")
 
 p("Checkpoint 2: raw orders, VM1 -> Kafka -> VM4", H2)
 step(6, "2", "Observer on orders (leave it running)",
-     '"$KAFKA_HOME/bin/kafka-console-consumer.sh" --bootstrap-server "$BS" \\\n'
+     '$KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server "$BS" \\\n'
      '    --topic orders --group ta-observer-teamXX-run1 \\\n'
      '    --consumer-property auto.offset.reset=latest \\\n'
      '    --max-messages 3 --timeout-ms 30000',
@@ -308,7 +371,7 @@ step(10, "4", "Spark Job 1",
      "    --output outputs/order_metrics.jsonl",
      C("enriched records written: 44") + ".")
 step(11, "2", "Observer on order_metrics (leave it running)",
-     '"$KAFKA_HOME/bin/kafka-console-consumer.sh" --bootstrap-server "$BS" \\\n'
+     '$KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server "$BS" \\\n'
      '    --topic order_metrics --group ta-observer-teamXX-run2 \\\n'
      '    --consumer-property auto.offset.reset=latest \\\n'
      '    --max-messages 3 --timeout-ms 30000',
@@ -330,7 +393,7 @@ step(15, "1", "Spark Job 2 (the final CSVs)",
 
 p("Checkpoint 4: broker failure and recovery", H2)
 step(16, "2", "Leaders and ISR before the failure",
-     '"$KAFKA_HOME/bin/kafka-topics.sh" --bootstrap-server "$BS" --describe --topic orders',
+     '$KAFKA_HOME/bin/kafka-topics.sh --bootstrap-server "$BS" --describe --topic orders',
      C("Isr: 1,2") + " / " + C("2,1") + " on both partitions.")
 step(17, "1", "Slow producer (leave it running)",
      "python producer/producer1.py --file order.jsonl --delay 0.5",
@@ -343,23 +406,23 @@ step(18, "3", "Kill the broker (while step 17 is still sending)",
      alone="pkill -9 -f broker2.properties")
 step(19, "2", "Leaders and ISR after the failure",
      "sleep 10\n"
-     '"$KAFKA_HOME/bin/kafka-topics.sh" --bootstrap-server "$BS" --describe --topic orders',
+     '$KAFKA_HOME/bin/kafka-topics.sh --bootstrap-server "$BS" --describe --topic orders',
      C("Leader: 1") + " and " + C("Isr: 1") + " on both partitions.")
 step(20, "3", "Restart the broker (leave this terminal open)",
-     "KAFKA_HEAP_OPTS='-Xmx512m -Xms512m' \"$KAFKA_HOME/bin/kafka-server-start.sh\" \\\n"
+     "KAFKA_HEAP_OPTS='-Xmx512m -Xms512m' $KAFKA_HOME/bin/kafka-server-start.sh \\\n"
      "    ~/broker2.properties",
      "it keeps printing log lines in this terminal; don't close it.",
-     alone="./kafka/local/cluster.sh start 2")
+     alone="bash kafka/local/cluster.sh start 2")
 step(21, "2", "Leaders and ISR after the restart",
      "sleep 15\n"
-     '"$KAFKA_HOME/bin/kafka-topics.sh" --bootstrap-server "$BS" --describe --topic orders',
+     '$KAFKA_HOME/bin/kafka-topics.sh --bootstrap-server "$BS" --describe --topic orders',
      C("Isr: 1,2") + " again; leaders are still all 1.")
 step(22, "2", "Leader election, then check again",
-     '"$KAFKA_HOME/bin/kafka-leader-election.sh" --bootstrap-server "$BS" \\\n'
+     '$KAFKA_HOME/bin/kafka-leader-election.sh --bootstrap-server "$BS" \\\n'
      '    --election-type preferred --all-topic-partitions\n'
-     '"$KAFKA_HOME/bin/kafka-topics.sh" --bootstrap-server "$BS" --describe --topic orders',
+     '$KAFKA_HOME/bin/kafka-topics.sh --bootstrap-server "$BS" --describe --topic orders',
      C("Successfully completed leader election") + "; the leaders are back to how they were in step 16. "
-     "<b>Demo finished.</b> (Alone: " + C("./kafka/local/cluster.sh stop all") + ".)")
+     "<b>Demo finished.</b> (Alone: " + C("bash kafka/local/cluster.sh stop all") + ".)")
 
 # ================================================================ 4 member 1
 story.append(PageBreak())

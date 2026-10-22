@@ -23,7 +23,32 @@ say "continue from CHAT_SUMMARY.md".
 | `demo_commands.md` | Detailed reference and troubleshooting; step 10 now has the full failure and recovery test |
 | `producer/publish.py`, `consumer/landing.py`, `kafka/topics.sh` | Also accept the TA's `BS` variable |
 
-## Failure test (what the TA grades)
+## TA evaluation page (2026-10-22): 4 checkpoints
+
+Source: https://bd-2026-eval-a2.notion.site/ (TA's "A2 Evaluation" page).
+Simple_Guide.pdf section 3 now holds only the commands these need: steps 0-4
+before the checkpoints, then steps 5-22 for the checkpoints, each tagged by member.
+Section 2 has a "What each member runs" table:
+1. Cluster: `kafka-broker-api-versions`, `kafka-metadata-quorum describe --status`
+   (VM2 = LeaderId 1), `kafka-topics --list`.
+2. TA console-consumer observer on `orders` (started before Producer 1, gives up
+   after 30 s), then `wc -l` / `head -n 2` on `orders_landed.jsonl` (62).
+3. The same for `order_metrics` before Producer 2; `order_metrics_landed.jsonl` (44).
+4. Slow producer `producer1.py --file order.jsonl --delay 0.5`; VM3 runs
+   `pkill -9 -f kafka.Kafka`; describe; restart in the foreground with
+   `KAFKA_HEAP_OPTS=...`; describe; `kafka-leader-election --election-type
+   preferred`; describe.
+
+Code change for this: producers now take `--delay` (and `--file` as an alias of
+`--input`), and retry 30 times, 1 s apart, so they survive a leader failover.
+Tested locally with the TA's commands: broker 2 was killed with kill -9 after 2
+records; the producer still published all 62 with no error, and the election
+restored the leaders.
+
+`DEMO_RUNBOOK.md`, `practice_alone.sh` and `demo_commands.md` still describe the
+**older** 0-32 flow; the PDF is the up-to-date one.
+
+## Older failure-test plan (superseded by the checkpoints above)
 
 1. Before: topic config, and Isr has both brokers (step 14).
 2. VM3 stopped: Leader 1, Isr 1 everywhere (steps 15-16).

@@ -15,7 +15,7 @@ def main():
     args = parser.parse_args()
     # Enriched records are valid JSON, so key them by order_id.
     publish_file(args.bootstrap_servers, args.topic, args.input,
-                 key_fn=lambda line: json.loads(line)["order_id"])
+                 key_fn=lambda line: json.loads(line)["order_id"], delay=args.delay)
 
 
 if __name__ == "__main__":

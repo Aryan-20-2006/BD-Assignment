@@ -39,7 +39,8 @@ Every script takes command-line flags; nothing is hardcoded to one machine.
 |---|---|---|
 | Kafka brokers | `--bootstrap-servers` or env `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092,localhost:9094` |
 | Topic | `--topic` | `orders` / `order_metrics` |
-| Producer input | `--input` | `order.jsonl` / `outputs/order_metrics.jsonl` |
+| Producer input | `--input` (alias `--file`) | `order.jsonl` / `outputs/order_metrics.jsonl` |
+| Producer slow mode | `--delay` seconds per record; prints each confirmed record (broker-failure test) | `0` |
 | Consumer output | `--output` | `outputs/orders_landed.jsonl` / `outputs/order_metrics_landed.jsonl` |
 | Consumer stop condition | `--idle-timeout`, `--wait-timeout` | 10 s idle after catching up; wait up to 120 s for the first message |
 | Spark Job 1 | `--input`, `--output` | `outputs/orders_landed.jsonl`, `outputs/order_metrics.jsonl` |

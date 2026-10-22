@@ -54,7 +54,13 @@ the old messages. Spark removes the exact duplicates, so the output is always
 
 ## ZeroTier
 
-- Network ID: `a581878f7d2d3958`. Aryan's laptop has joined.
+- Network ID: `a581878f7d2d3958`.
+- VM1 (Aryan, Windows) = `10.31.88.84`. **VM2 = `10.31.88.79`** (Linux, device
+  `461e94c580`; ping from WSL works), already filled in to Simple_Guide.pdf.
+  VM3 and VM4 haven't joined yet. **For now VM2's machine also runs VM3's
+  broker on port 9094**, so the PDF uses `B2=10.31.88.79:9094`. When Member 3
+  joins, change `VM3_ADDR` near the top of `tools/make_simple_guide.py` to
+  `"<VM3 IP>:9092"` and rebuild the PDF (the temporary note disappears by itself).
 - Approve new devices at my.zerotier.com → network → Members → tick Auth.
 
 ## Still to do

@@ -104,7 +104,7 @@ def step(num, who, title, cmds, expect=None, alone=None, boxes=None, fix=None):
 # then set VM3_ADDR = "<VM3's ZeroTier IP>:9092".
 VM1_ADDR = "10.31.88.84"   # Member 1's laptop (only connects out; not used in commands)
 VM2_ADDR = "10.31.88.79:9092"
-VM3_ADDR = "10.31.88.36:9092"   # Luminous
+VM3_ADDR = "VM3_ZEROTIER_IP:9092"   # Member 3 is re-joining ZeroTier; put their new IP here
 VM2_REPO = "~/distributed-food-ordering/BD-Assignment"   # where the repo lives on VM2
 
 SETUP_TAIL = ("export B1=%s\n"

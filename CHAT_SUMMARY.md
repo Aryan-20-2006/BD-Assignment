@@ -74,14 +74,15 @@ Edit the script, not the PDF.
   network → Members → tick Auth.
 - VM1 (Aryan, Windows) = `10.31.88.84`.
 - **VM2 = `10.31.88.79`**: teammate's VMware Ubuntu VM, device `461e94c580`.
-- **VM3 = `10.31.88.36`** ("Luminous", device `7c69f8d88b`; ping from WSL
-  works). Set on 2026-10-25 (`VM3_ADDR` in `tools/make_simple_guide.py`), so
-  the PDF now uses `B2=10.31.88.36:9092`, shows Member 3's own setup box (C),
-  and step 18 is the TA's `pkill -9 -f kafka.Kafka` again. The temporary
-  "VM2 also runs broker 2 on 9094" setup is gone.
-- Device `d84e08aa9d` is a redundant second entry for Luminous's machine
-  (confirmed by Aryan) → remove it in ZeroTier Central. **Member 4 hasn't
-  joined yet**; until then Aryan's laptop runs Member 4's steps.
+- **VM3: waiting for Member 3's new ZeroTier IP.** Member 3 (Luminous) is
+  re-joining ZeroTier, so their old entries (`7c69f8d88b` / `10.31.88.36` and
+  the duplicate `d84e08aa9d`) are to be removed. The PDF currently shows the
+  placeholder `VM3_ZEROTIER_IP` (`VM3_ADDR = "VM3_ZEROTIER_IP:9092"` in
+  `tools/make_simple_guide.py`). VM3 is still treated as its own machine:
+  Member 3's setup box C, the TA's `pkill -9 -f kafka.Kafka` in step 18, and
+  no "VM2 also runs broker 2" workaround. When the new IP arrives, set
+  `VM3_ADDR = "<ip>:9092"` and rebuild.
+- **Member 4 hasn't joined yet**; until then Aryan's laptop runs Member 4's steps.
 - Only VM2's and VM3's IPs go into commands (they're the brokers).
 
 ## PDF fix: one-time setup section (added 2026-10-22)

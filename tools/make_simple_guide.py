@@ -104,7 +104,9 @@ def step(num, who, title, cmds, expect=None, alone=None, boxes=None, fix=None):
 # then set VM3_ADDR = "<VM3's ZeroTier IP>:9092".
 VM1_ADDR = "10.31.88.84"   # Member 1's laptop (only connects out; not used in commands)
 VM2_ADDR = "10.31.88.79:9092"
-VM3_ADDR = "10.31.88.161:9092"   # Kruthik (VM4 = Khush, 10.31.88.123, not needed in commands)
+# For now Aniket runs VM2 and VM3 on one machine (broker 2 on port 9094); Aryan runs VM1 and VM4.
+# Real VM3 later: Kruthik = "10.31.88.161:9092".
+VM3_ADDR = "10.31.88.79:9094"
 REPO_URL = "https://github.com/Aryan-20-2006/BD-Assignment.git"   # everyone clones this to ~/BD-Assignment
 
 SETUP_TAIL = ("export B1=%s\n"
@@ -391,9 +393,17 @@ step(2, "3", "Start broker 2",
      "no output.",
      alone="bash kafka/local/cluster.sh start 2")
 step(3, "2", "Create fresh topics",
-     "bash kafka/topics.sh delete\nsleep 5\nbash kafka/topics.sh create",
+     "bash kafka/topics.sh delete\nsleep 10\nbash kafka/topics.sh create",
      "both topics with " + C("PartitionCount: 2") + ", " + C("ReplicationFactor: 2") + ", Isr 1,2.",
-     fix=C("Permission denied") + ": type it with " + C("bash") + " in front, as here (or run "
+     fix=C("replication factor of 2 cannot be reached because only 1 broker(s) are registered")
+     + ": broker 2 isn't in this cluster yet. " + (
+         "Do one-time box C (with the cluster ID from box B) and step 2 on this machine; "
+         if SAME_HOST else "Member 3 does one-time box C and step 2; ")
+     + "check with step 5 that both " + C("id: 1") + " and " + C("id: 2") + " appear, then run this again."
+     + ("" if SAME_HOST else " Never start " + C("broker2.properties") + " on VM2 to get around it.")
+     + " " + C("Topic 'orders' does not exist as expected")
+     + ": the old topic was still being deleted; run " + C("bash kafka/topics.sh create") + " again. "
+     + C("Permission denied") + ": type it with " + C("bash") + " in front, as here (or run "
      + C("chmod +x kafka/*.sh kafka/local/*.sh") + " once). " + C("Connection to node ... could not be "
      "established") + ": a broker isn't running, so redo steps 1 and 2.")
 step(4, "1+4", "Clear old outputs", CLEAR,

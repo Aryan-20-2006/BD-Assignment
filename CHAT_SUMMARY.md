@@ -74,7 +74,12 @@ Edit the script, not the PDF.
   network → Members → tick Auth.
 - VM1 (Aryan, Windows) = `10.31.88.84`.
 - **VM2 = `10.31.88.79`**: teammate's VMware Ubuntu VM, device `461e94c580`.
-- **Roles "for now" (2026-10-25):** VM1 Aryan `10.31.88.84`, **VM2 Aniket
+- **Practice setup (latest, 2026-10-25): Aryan runs VM1 + VM4 on his laptop;
+  Aniket runs VM2 + VM3 on his one VM** (broker 2 on port 9094). The PDF is in
+  "both brokers on one VM" mode: `VM3_ADDR = "10.31.88.79:9094"`, box C = broker 2
+  on the same machine, step 18 = `pkill -9 -f broker2.properties`. For the real
+  demo with Kruthik as VM3, set `VM3_ADDR = "10.31.88.161:9092"` and rebuild.
+- Earlier plan, "roles for now" (2026-10-25): VM1 Aryan `10.31.88.84`, **VM2 Aniket
   `10.31.88.79`** (Linux), **VM3 Kruthik `10.31.88.161`** (Linux, ZeroTier inside
   the VM, so inbound connections work), **VM4 Khush `10.31.88.123`** (ZeroTier on
   Windows + VirtualBox. Fine for VM4, which only connects out). The PDF uses

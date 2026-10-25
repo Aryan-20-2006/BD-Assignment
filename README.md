@@ -84,8 +84,9 @@ sudo zerotier-cli join <NETWORK_ID>                   # then approve the member 
 ip -4 addr | grep -A2 zt                              # note your ZeroTier IP and share it with the team
 
 # Get the code
-git clone <REPO_URL> BD-Assignment
-cd BD-Assignment
+git clone https://github.com/Aryan-20-2006/BD-Assignment.git ~/BD-Assignment
+cd ~/BD-Assignment
+# later, to get updates:  cd ~/BD-Assignment && git pull
 ```
 
 ### 2. VM2 and VM3 (and optionally VM1): Kafka

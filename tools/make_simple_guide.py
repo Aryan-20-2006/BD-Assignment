@@ -105,7 +105,7 @@ def step(num, who, title, cmds, expect=None, alone=None, boxes=None, fix=None):
 VM1_ADDR = "10.31.88.84"   # Member 1's laptop (only connects out; not used in commands)
 VM2_ADDR = "10.31.88.79:9092"
 VM3_ADDR = "VM3_ZEROTIER_IP:9092"   # Member 3 is re-joining ZeroTier; put their new IP here
-VM2_REPO = "~/distributed-food-ordering/BD-Assignment"   # where the repo lives on VM2
+REPO_URL = "https://github.com/Aryan-20-2006/BD-Assignment.git"   # everyone clones this to ~/BD-Assignment
 
 SETUP_TAIL = ("export B1=%s\n"
               "export B2=%s\n"
@@ -119,8 +119,9 @@ M1_SETUP = ("cd /mnt/c/Users/Aryan/Desktop/BD-Assignment\n"
             "export KAFKA_HOME=~/kafka\n"
             "export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64\n"
             "unset SPARK_HOME HADOOP_HOME HADOOP_CONF_DIR PYSPARK_PYTHON PYSPARK_DRIVER_PYTHON\n")
-M23_SETUP = "cd ~/BD-Assignment\nexport KAFKA_HOME=~/kafka\n"
-M4_SETUP = "cd ~/BD-Assignment\nsource .venv/bin/activate\nexport KAFKA_HOME=~/kafka\n"
+# git pull keeps every VM on the latest code and guide (Member 1 is the one who pushes changes)
+M23_SETUP = "cd ~/BD-Assignment\ngit pull\nexport KAFKA_HOME=~/kafka\n"
+M4_SETUP = "cd ~/BD-Assignment\ngit pull\nsource .venv/bin/activate\nexport KAFKA_HOME=~/kafka\n"
 CLEAR = ("rm -rf outputs/*.jsonl outputs/*.csv outputs/failover_test outputs/recovery_test\n"
          "mkdir -p outputs/failover_test outputs/recovery_test")
 UNDER = ("$KAFKA_HOME/bin/kafka-topics.sh --bootstrap-server $B1 \\\n"
@@ -269,15 +270,36 @@ SAME_HOST = VM2_IP == VM3_IP
 DATA_SED = '-e "s#/var/lib/kafka/data#$HOME/kafka-data#"'
 
 p("One-time setup (the day before, not in front of the TA)", H2)
-p("Do this once per machine. It creates the broker config files that steps 1, 2 and 20 use, with the right "
-  "ZeroTier IPs already in them, so the brokers never announce " + C("localhost") + ".")
-step("A", "all", "Make ~/BD-Assignment point at your copy of the repo (Linux VMs)",
-     "cd %s\n"
-     'ln -sfn "$PWD" ~/BD-Assignment\n'
-     "ls ~/BD-Assignment/kafka" % VM2_REPO,
-     "the " + C("ls") + " lists " + C("local  topics.sh  vm") + ". " + C(VM2_REPO) + " is where the repo is on "
-     "VM2; on another VM, " + C("cd") + " to wherever you unzipped or cloned it instead. After this, every "
-     + C("cd ~/BD-Assignment") + " in this guide works. Member 1 (WSL) skips this.")
+p("Do this once per machine. It gets the code and creates the broker config files that steps 1, 2 and 20 use, "
+  "with the right ZeroTier IPs already in them, so the brokers never announce " + C("localhost") + ".")
+p("<b>Git in one minute.</b> Our project lives on GitHub: " + C("github.com/Aryan-20-2006/BD-Assignment")
+  + ". " + C("git clone") + " downloads the whole project folder once (box A). " + C("git pull")
+  + " downloads only what has changed since (box A2, and the first lines of step 0). You don't need a GitHub "
+  "account, and you never need to upload anything: Member 1 does that. Open a terminal on Ubuntu with "
+  "<b>Ctrl+Alt+T</b>. When " + C("sudo") + " asks for a password, it's your VM's login password, and nothing "
+  "appears on screen while you type it; that's normal.")
+step("A", "all", "Get the code with git, into ~/BD-Assignment (Linux VMs)",
+     "sudo apt install -y git\n"
+     "cd ~\n"
+     "[ -L ~/BD-Assignment ] && rm ~/BD-Assignment\n"
+     "git clone %s ~/BD-Assignment\n"
+     "ls ~/BD-Assignment/kafka" % REPO_URL,
+     "the " + C("ls") + " lists " + C("local  topics.sh  vm") + ". Everyone now has the same folder, "
+     + C("~/BD-Assignment") + ", so every " + C("cd ~/BD-Assignment") + " in this guide works. The third line only "
+     "removes an old shortcut with that name, never a real folder. An old zip copy elsewhere can stay; it's no "
+     "longer used. <b>Member 4</b> also creates the Python environment once: " + C("cd ~/BD-Assignment") + ", "
+     + C("python3 -m venv .venv") + ", " + C("source .venv/bin/activate") + ", "
+     + C("pip install -r requirements.txt") + ". Member 1 (WSL) skips this box.",
+     fix=C("already exists and is not empty") + ": a real folder is already called " + C("~/BD-Assignment")
+     + ". Rename it with " + C("mv ~/BD-Assignment ~/BD-Assignment-old") + " and run the " + C("git clone")
+     + " line again.")
+step("A2", "all", "Get updates (before every practice and on demo morning)",
+     "cd ~/BD-Assignment\n"
+     "git pull",
+     C("Already up to date.") + " or a list of changed files. Member 1 publishes changes from GitHub Desktop "
+     "(Commit, then Push).",
+     fix=C("Your local changes ... would be overwritten") + ": run " + C("git stash") + ", then " + C("git pull")
+     + " again.")
 step("B", "2", "Broker 1 config, cluster ID, storage, firewall",
      "export KAFKA_HOME=~/kafka\n"
      "cd ~/BD-Assignment\n"

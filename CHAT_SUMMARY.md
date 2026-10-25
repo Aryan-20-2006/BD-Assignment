@@ -109,6 +109,17 @@ given IP. Also: all repo scripts are run as `bash kafka/...` (the copy lost its
 executable flag → "Permission denied"), and `$KAFKA_HOME/bin/...` commands are
 no longer wrapped in quotes (a missed first `"` left bash waiting).
 
+## Git for the team (2026-10-25)
+
+- The repo is **public**: https://github.com/Aryan-20-2006/BD-Assignment (Aryan
+  pushes with GitHub Desktop). The PDF can be viewed there in the browser.
+- PDF box A is now **"Get the code with git"**: every Linux VM clones into
+  `~/BD-Assignment` (it removes an old `~/BD-Assignment` shortcut first), so the
+  folder is the same everywhere. Member 4 then creates `.venv` there. New box A2:
+  `cd ~/BD-Assignment && git pull` before every practice and on demo morning
+  (`git stash` if pull complains about local changes). The README has the real
+  clone URL too.
+
 ## Two-person rehearsal (2026-10-22): unfinished
 
 The teammate's VM (10.31.88.79) runs both brokers; Aryan runs the VM1 + VM4

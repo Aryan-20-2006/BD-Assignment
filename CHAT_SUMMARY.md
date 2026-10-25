@@ -74,14 +74,19 @@ Edit the script, not the PDF.
   network → Members → tick Auth.
 - VM1 (Aryan, Windows) = `10.31.88.84`.
 - **VM2 = `10.31.88.79`**: teammate's VMware Ubuntu VM, device `461e94c580`.
-- **Devices as of 2026-10-25:** Aryan `10.31.88.84` (VM1, Windows),
-  **Aniket `10.31.88.79` (VM2, Linux)**, **Kruthik `10.31.88.161` (VM3, Linux)**,
-  Khush `10.31.88.123` (Windows, presumably VM4). The PDF uses
-  `B1=10.31.88.79:9092`, `B2=10.31.88.161:9092` (`VM3_ADDR` in
+- **Devices (confirmed order, 2026-10-25):** VM1 Aryan `10.31.88.84` (Windows),
+  **VM2 Aniket `10.31.88.79`** (Linux), **VM3 Khush `10.31.88.123`** (ZeroTier on
+  *Windows*), VM4 Kruthik `10.31.88.161` (Linux). The PDF uses
+  `B1=10.31.88.79:9092`, `B2=10.31.88.123:9092` (`VM3_ADDR` in
   `tools/make_simple_guide.py`).
-- Last check from Aryan's WSL: Kruthik and Khush answer ping; Kruthik's 9092
-  says "refused" (fine: Kafka not set up yet, no firewall blocking). Aniket's
-  VM was **offline** (no ping; ZeroTier "last active 2 days ago").
+- **Open issue with VM3:** Khush's ZeroTier runs on Windows, but the broker
+  will run in a Linux VM or WSL, and inbound connections from ZeroTier don't
+  reach those by default (his 9092 **timed out** from Aryan's laptop). Fix:
+  install ZeroTier **inside** his Linux VM (it then gets a new Linux IP, which
+  replaces .123), or, if it's WSL, use mirrored networking plus Windows
+  firewall rules.
+- Last check from Aryan's WSL: Khush and Kruthik answer ping. Aniket's VM was
+  **offline** (no ping; ZeroTier "last active 2 days ago").
 - Only VM2's and VM3's IPs go into commands (they're the brokers).
 
 ## PDF fix: one-time setup section (added 2026-10-22)

@@ -104,7 +104,7 @@ def step(num, who, title, cmds, expect=None, alone=None, boxes=None, fix=None):
 # then set VM3_ADDR = "<VM3's ZeroTier IP>:9092".
 VM1_ADDR = "10.31.88.84"   # Member 1's laptop (only connects out; not used in commands)
 VM2_ADDR = "10.31.88.79:9092"
-VM3_ADDR = "10.31.88.161:9092"   # Kruthik
+VM3_ADDR = "10.31.88.123:9092"   # Khush
 REPO_URL = "https://github.com/Aryan-20-2006/BD-Assignment.git"   # everyone clones this to ~/BD-Assignment
 
 SETUP_TAIL = ("export B1=%s\n"

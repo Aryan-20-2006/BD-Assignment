@@ -287,9 +287,7 @@ step("A", "all", "Get the code with git, into ~/BD-Assignment (Linux VMs)",
      "the " + C("ls") + " lists " + C("local  topics.sh  vm") + ". Everyone now has the same folder, "
      + C("~/BD-Assignment") + ", so every " + C("cd ~/BD-Assignment") + " in this guide works. The third line only "
      "removes an old shortcut with that name, never a real folder. An old zip copy elsewhere can stay; it's no "
-     "longer used. <b>Member 4</b> also creates the Python environment once: " + C("cd ~/BD-Assignment") + ", "
-     + C("python3 -m venv .venv") + ", " + C("source .venv/bin/activate") + ", "
-     + C("pip install -r requirements.txt") + ". Member 1 (WSL) skips this box.",
+     "longer used. <b>Member 4</b> then does box D (Java and Python). Member 1 (WSL) skips this box.",
      fix=C("already exists and is not empty") + ": a real folder is already called " + C("~/BD-Assignment")
      + ". Rename it with " + C("mv ~/BD-Assignment ~/BD-Assignment-old") + " and run the " + C("git clone")
      + " line again.")
@@ -348,6 +346,23 @@ if not SAME_HOST:
      + ". Replace " + C("CLUSTER_ID_FROM_MEMBER_2") + " with the ID Member 2 sent. Never run "
      + C("random-uuid") + " on VM3." + (" <b>Skip this box for now</b> (box C covers it) until Member 3 joins."
                                         if SAME_HOST else ""))
+
+step("D", "4", "Java, Python and the project's packages (after box A)",
+     "sudo apt update\n"
+     "sudo apt install -y openjdk-21-jre-headless python3-venv python3-pip\n"
+     "java -version\n"
+     "cd ~/BD-Assignment\n"
+     "python3 -m venv .venv\n"
+     "source .venv/bin/activate\n"
+     "pip install -r requirements.txt\n"
+     'python -c "import pyspark, kafka; print(pyspark.__version__, kafka.__version__)"',
+     C("java -version") + " shows 21 (17 or higher is fine). " + C("pip install") + " takes a few minutes "
+     "(about 400 MB). The last line prints " + C("4.2.0 2.2.15") + ". Member 4 needs no Kafka install: Java is "
+     "for Spark Job 1, Python for the consumer, Spark and producer.",
+     fix=C("No module named venv") + " or " + C("ensurepip is not available") + ": the " + C("apt install")
+     + " line didn't finish; run it again. " + C("No module named 'pyspark'") + " on the last line: "
+     + C("pip install") + " failed or ran without " + C("(.venv)") + " in the prompt; run the "
+     + C("source") + " and " + C("pip") + " lines again.")
 
 p("Before the checkpoints", H2)
 step(0, "all", "Set up the terminal (every terminal you use)", None,

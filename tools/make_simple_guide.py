@@ -104,9 +104,12 @@ def step(num, who, title, cmds, expect=None, alone=None, boxes=None, fix=None):
 # then set VM3_ADDR = "<VM3's ZeroTier IP>:9092".
 VM1_ADDR = "10.31.88.84"   # Member 1's laptop (only connects out; not used in commands)
 VM2_ADDR = "10.31.88.79:9092"
-# For now Aniket runs VM2 and VM3 on one machine (broker 2 on port 9094); Aryan runs VM1 and VM4.
-# Real VM3 later: Kruthik = "10.31.88.161:9092".
-VM3_ADDR = "10.31.88.79:9094"
+# Two versions from one source:
+#   python tools/make_simple_guide.py Simple_Guide.pdf                      -> 4 VMs, VM3 = Kruthik
+#   python tools/make_simple_guide.py Simple_Guide_Practice.pdf --practice  -> Aniket runs VM2 + VM3 on one
+#                                                                              machine (broker 2 on 9094)
+PRACTICE = "--practice" in sys.argv
+VM3_ADDR = "10.31.88.79:9094" if PRACTICE else "10.31.88.161:9092"
 REPO_URL = "https://github.com/Aryan-20-2006/BD-Assignment.git"   # everyone clones this to ~/BD-Assignment
 
 SETUP_TAIL = ("export B1=%s\n"
@@ -134,6 +137,11 @@ story.append(Paragraph("Simple Guide: Distributed Food Ordering", ParagraphStyle
     "T", parent=ss["Title"], textColor=BLUE, fontSize=20)))
 p("<para alignment='center'>Kafka (KRaft) + Spark Batch &middot; Big Data 2026 (UE24CS343AB2) &middot; "
   "Team of 4: Member 1 = VM1, Member 2 = VM2, Member 3 = VM3, Member 4 = VM4</para>")
+p("<para alignment='center'><b>%s</b></para>" % (
+    "PRACTICE VERSION: VM2 and VM3 both on 10.31.88.79 (broker 2 on port 9094). "
+    "For the real 4-VM demo use Simple_Guide.pdf." if PRACTICE else
+    "DEMO VERSION: 4 separate VMs (VM2 = 10.31.88.79, VM3 = 10.31.88.161). "
+    "For practice with VM2 and VM3 on one machine use Simple_Guide_Practice.pdf."))
 story.append(Spacer(1, 6))
 table([
     ["Section", "What's in it"],

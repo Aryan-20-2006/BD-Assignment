@@ -74,11 +74,16 @@ Edit the script, not the PDF.
   network → Members → tick Auth.
 - VM1 (Aryan, Windows) = `10.31.88.84`.
 - **VM2 = `10.31.88.79`**: teammate's VMware Ubuntu VM, device `461e94c580`.
-- **Practice setup (latest, 2026-10-25): Aryan runs VM1 + VM4 on his laptop;
-  Aniket runs VM2 + VM3 on his one VM** (broker 2 on port 9094). The PDF is in
-  "both brokers on one VM" mode: `VM3_ADDR = "10.31.88.79:9094"`, box C = broker 2
-  on the same machine, step 18 = `pkill -9 -f broker2.properties`. For the real
-  demo with Kruthik as VM3, set `VM3_ADDR = "10.31.88.161:9092"` and rebuild.
+- **Two PDFs, built from the same script (2026-10-25):**
+  - `Simple_Guide_Practice.pdf` (`python tools/make_simple_guide.py Simple_Guide_Practice.pdf --practice`):
+    Aryan runs VM1 + VM4; **Aniket runs VM2 + VM3 on one VM**
+    (`B2=10.31.88.79:9094`). Box C = broker 2 on the same machine; step 18 =
+    `pkill -9 -f broker2.properties`.
+  - `Simple_Guide.pdf` (`python tools/make_simple_guide.py Simple_Guide.pdf`):
+    the real demo with **4 separate VMs**; VM3 = Kruthik `10.31.88.161:9092`. Box C
+    = Member 3's own VM; step 18 = the TA's `pkill -9 -f kafka.Kafka`.
+  - Each has a bold "PRACTICE VERSION" / "DEMO VERSION" line on page 1. Rebuild
+    **both** after any edit to the script.
 - Earlier plan, "roles for now" (2026-10-25): VM1 Aryan `10.31.88.84`, **VM2 Aniket
   `10.31.88.79`** (Linux), **VM3 Kruthik `10.31.88.161`** (Linux, ZeroTier inside
   the VM, so inbound connections work), **VM4 Khush `10.31.88.123`** (ZeroTier on

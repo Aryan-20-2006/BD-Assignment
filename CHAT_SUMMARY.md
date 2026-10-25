@@ -74,17 +74,15 @@ Edit the script, not the PDF.
   network → Members → tick Auth.
 - VM1 (Aryan, Windows) = `10.31.88.84`.
 - **VM2 = `10.31.88.79`**: teammate's VMware Ubuntu VM, device `461e94c580`.
-- **Devices (confirmed order, 2026-10-25):** VM1 Aryan `10.31.88.84` (Windows),
-  **VM2 Aniket `10.31.88.79`** (Linux), **VM3 Khush `10.31.88.123`** (ZeroTier on
-  *Windows*), VM4 Kruthik `10.31.88.161` (Linux). The PDF uses
-  `B1=10.31.88.79:9092`, `B2=10.31.88.123:9092` (`VM3_ADDR` in
-  `tools/make_simple_guide.py`).
-- **Open issue with VM3:** Khush's ZeroTier runs on Windows, but the broker
-  will run in a Linux VM or WSL, and inbound connections from ZeroTier don't
-  reach those by default (his 9092 **timed out** from Aryan's laptop). Fix:
-  install ZeroTier **inside** his Linux VM (it then gets a new Linux IP, which
-  replaces .123), or, if it's WSL, use mirrored networking plus Windows
-  firewall rules.
+- **Roles "for now" (2026-10-25):** VM1 Aryan `10.31.88.84`, **VM2 Aniket
+  `10.31.88.79`** (Linux), **VM3 Kruthik `10.31.88.161`** (Linux, ZeroTier inside
+  the VM, so inbound connections work), **VM4 Khush `10.31.88.123`** (ZeroTier on
+  Windows + VirtualBox. Fine for VM4, which only connects out). The PDF uses
+  `B1=10.31.88.79:9092`, `B2=10.31.88.161:9092`.
+- Kruthik had his **own one-node test Kafka** running (cluster
+  `6f3GrDEVRJqeccjPhdjdmQ`, node 1, topic `zerotier-test`). Box C now stops any
+  running Kafka first, and says to `rm -rf ~/kafka-data` if format reports
+  "already formatted".
 - Last check from Aryan's WSL: Khush and Kruthik answer ping. Aniket's VM was
   **offline** (no ping; ZeroTier "last active 2 days ago").
 - Only VM2's and VM3's IPs go into commands (they're the brokers).

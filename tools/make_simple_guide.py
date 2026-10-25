@@ -104,7 +104,7 @@ def step(num, who, title, cmds, expect=None, alone=None, boxes=None, fix=None):
 # then set VM3_ADDR = "<VM3's ZeroTier IP>:9092".
 VM1_ADDR = "10.31.88.84"   # Member 1's laptop (only connects out; not used in commands)
 VM2_ADDR = "10.31.88.79:9092"
-VM3_ADDR = "10.31.88.123:9092"   # Khush
+VM3_ADDR = "10.31.88.161:9092"   # Kruthik (VM4 = Khush, 10.31.88.123, not needed in commands)
 REPO_URL = "https://github.com/Aryan-20-2006/BD-Assignment.git"   # everyone clones this to ~/BD-Assignment
 
 SETUP_TAIL = ("export B1=%s\n"
@@ -335,6 +335,8 @@ if not SAME_HOST:
   step("C", "3", "Broker 2 config and storage (on VM3)",
      "export KAFKA_HOME=~/kafka\n"
      "cd ~/BD-Assignment\n"
+     "$KAFKA_HOME/bin/kafka-server-stop.sh\n"
+     "while pgrep -f kafka.Kafka > /dev/null; do sleep 1; done\n"
      'sed -e "s/VM2_ADDRESS/%s/g" -e "s/VM3_ADDRESS/%s/g" \\\n'
      "    %s \\\n"
      "    kafka/vm/vm3-broker2.properties > ~/broker2.properties\n"
@@ -344,8 +346,10 @@ if not SAME_HOST:
      "sudo ufw allow in on zt+" % (VM2_IP, VM3_IP if not SAME_HOST else "VM3_ZEROTIER_IP", DATA_SED),
      "the " + C("grep") + " shows VM2's IP in " + C("voters") + " and VM3's IP in " + C("advertised")
      + ". Replace " + C("CLUSTER_ID_FROM_MEMBER_2") + " with the ID Member 2 sent. Never run "
-     + C("random-uuid") + " on VM3." + (" <b>Skip this box for now</b> (box C covers it) until Member 3 joins."
-                                        if SAME_HOST else ""))
+     + C("random-uuid") + " on VM3. The first two lines stop any Kafka already running on this VM (e.g. a "
+     "test setup); it's not part of our cluster.",
+     fix=C("already formatted") + " on the " + C("format") + " line: old storage from an earlier test is in "
+     + C("~/kafka-data") + ". Run " + C("rm -rf ~/kafka-data") + " and repeat the " + C("format") + " line.")
 
 step("D", "4", "Java, Python and the project's packages (after box A)",
      "sudo apt update\n"

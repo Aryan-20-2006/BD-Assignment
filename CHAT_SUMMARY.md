@@ -74,15 +74,14 @@ Edit the script, not the PDF.
   network → Members → tick Auth.
 - VM1 (Aryan, Windows) = `10.31.88.84`.
 - **VM2 = `10.31.88.79`**: teammate's VMware Ubuntu VM, device `461e94c580`.
-- **VM3: waiting for Member 3's new ZeroTier IP.** Member 3 (Luminous) is
-  re-joining ZeroTier, so their old entries (`7c69f8d88b` / `10.31.88.36` and
-  the duplicate `d84e08aa9d`) are to be removed. The PDF currently shows the
-  placeholder `VM3_ZEROTIER_IP` (`VM3_ADDR = "VM3_ZEROTIER_IP:9092"` in
-  `tools/make_simple_guide.py`). VM3 is still treated as its own machine:
-  Member 3's setup box C, the TA's `pkill -9 -f kafka.Kafka` in step 18, and
-  no "VM2 also runs broker 2" workaround. When the new IP arrives, set
-  `VM3_ADDR = "<ip>:9092"` and rebuild.
-- **Member 4 hasn't joined yet**; until then Aryan's laptop runs Member 4's steps.
+- **Devices as of 2026-10-25:** Aryan `10.31.88.84` (VM1, Windows),
+  **Aniket `10.31.88.79` (VM2, Linux)**, **Kruthik `10.31.88.161` (VM3, Linux)**,
+  Khush `10.31.88.123` (Windows, presumably VM4). The PDF uses
+  `B1=10.31.88.79:9092`, `B2=10.31.88.161:9092` (`VM3_ADDR` in
+  `tools/make_simple_guide.py`).
+- Last check from Aryan's WSL: Kruthik and Khush answer ping; Kruthik's 9092
+  says "refused" (fine: Kafka not set up yet, no firewall blocking). Aniket's
+  VM was **offline** (no ping; ZeroTier "last active 2 days ago").
 - Only VM2's and VM3's IPs go into commands (they're the brokers).
 
 ## PDF fix: one-time setup section (added 2026-10-22)

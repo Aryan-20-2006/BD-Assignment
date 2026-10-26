@@ -76,9 +76,10 @@ Edit the script, not the PDF.
 - **VM2 = `10.31.88.79`**: teammate's VMware Ubuntu VM, device `461e94c580`.
 - **Two PDFs, built from the same script (2026-10-25):**
   - `Simple_Guide_Practice.pdf` (`python tools/make_simple_guide.py Simple_Guide_Practice.pdf --practice`):
-    Aryan runs VM1 + VM4; **Aniket runs VM2 + VM3 on one VM**
-    (`B2=10.31.88.79:9094`). Box C = broker 2 on the same machine; step 18 =
-    `pkill -9 -f broker2.properties`.
+    **3 people (updated 2026-10-26)**: Aryan runs VM1 + VM4, Aniket = VM2
+    (`10.31.88.79`), Kruthik = VM3 (`10.31.88.161`, his own VM). The same IPs as
+    the demo version; only the page-1 line differs. (VM2 + VM3 on one machine is
+    still possible: set `VM3_ADDR = "10.31.88.79:9094"` in the script.)
   - `Simple_Guide.pdf` (`python tools/make_simple_guide.py Simple_Guide.pdf`):
     the real demo with **4 separate VMs**; VM3 = Kruthik `10.31.88.161:9092`. Box C
     = Member 3's own VM; step 18 = the TA's `pkill -9 -f kafka.Kafka`.

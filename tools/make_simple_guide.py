@@ -361,8 +361,13 @@ if not SAME_HOST:
      + ". Replace " + C("CLUSTER_ID_FROM_MEMBER_2") + " with the ID Member 2 sent. Never run "
      + C("random-uuid") + " on VM3. The first two lines stop any Kafka already running on this VM (e.g. a "
      "test setup); it's not part of our cluster.",
-     fix=C("already formatted") + " on the " + C("format") + " line: old storage from an earlier test is in "
-     + C("~/kafka-data") + ". Run " + C("rm -rf ~/kafka-data") + " and repeat the " + C("format") + " line.")
+     fix=C("Invalid cluster.id ... Expected CLUSTER_ID_FROM_MEMBER_2") + ": the placeholder wasn't replaced. If "
+     "the message goes on " + C("but read") + " followed by Member 2's real ID, the storage is already fine: skip "
+     "the " + C("format") + " line. " + C("already formatted") + " or a <i>different</i> ID after " + C("but read")
+     + ": old storage from an earlier test is in " + C("~/kafka-data") + ", so run " + C("rm -rf ~/kafka-data")
+     + " and repeat the " + C("format") + " line with Member 2's ID. If the " + C("grep") + " shows an IP other "
+     "than " + C(VM3_IP) + " in " + C("advertised") + ", this copy of the guide is old: " + C("git pull")
+     + " and run the " + C("sed") + " line again.")
 
 step("D", "4", "Java, Python and the project's packages (after box A)",
      "sudo apt update\n"

@@ -529,7 +529,12 @@ step(20, "3", "Restart the broker in a second terminal (leave it open)",
      "it keeps printing log lines (some " + C("WARN") + " ones are normal), including "
      + C("Kafka Server started") + ", and doesn't return to the prompt. Run it in a <b>separate terminal</b> "
      "(with step 0 done) and don't close it or press Ctrl+C: that stops broker 2 again.",
-     fix="it returns to the prompt by itself: broker 2 didn't start; the last lines it printed say why.",
+     fix="it returns to the prompt by itself: broker 2 didn't start; the last lines it printed say why. "
+     + C("fatal error while waiting for the controller to acknowledge that we are caught up") + " with "
+     + C("CancellationException ... ShutdownEvent") + ": it was stopped (Ctrl+C, a closed terminal, or a stop "
+     "command) before it finished starting. Run this again and wait: on a slow ZeroTier link catching up can "
+     "take a minute or two before " + C("Kafka Server started") + " appears. If it still hangs, check from VM3 "
+     "that " + C("nc -zv -w 5 " + VM2_IP + " 9093") + " and " + C("... 9092") + " both succeed.",
      alone="bash kafka/local/cluster.sh start 2")
 step(21, "2", "Leaders and ISR after the restart",
      "sleep 15\n"

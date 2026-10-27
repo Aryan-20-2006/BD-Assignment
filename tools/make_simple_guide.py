@@ -311,6 +311,20 @@ step("A2", "all", "Get updates (before every practice and on demo morning)",
      "(Commit, then Push).",
      fix=C("Your local changes ... would be overwritten") + ": run " + C("git stash") + ", then " + C("git pull")
      + " again.")
+step("A3", "2+3", "Install Kafka 3.9.2 (the TA's version; the same on both brokers)",
+     "pkill -9 -f kafka.Kafka\n"
+     "cd ~\n"
+     "curl -LO https://archive.apache.org/dist/kafka/3.9.2/kafka_2.13-3.9.2.tgz\n"
+     "tar xzf kafka_2.13-3.9.2.tgz -C ~\n"
+     "[ -d ~/kafka ] && [ ! -L ~/kafka ] && mv ~/kafka ~/kafka-old\n"
+     "ln -sfn ~/kafka_2.13-3.9.2 ~/kafka\n"
+     "~/kafka/bin/kafka-topics.sh --version",
+     "the last line prints " + C("3.9.2") + ". Both broker machines must print the same version, or broker 2 "
+     "can't join (it connects, then gives up while \"waiting for the controller to acknowledge that we are "
+     "caught up\"). Storage made by another Kafka version must be made again: do box B (Member 2) and box C "
+     "(Member 3) after this. Java 17 or 21 works.",
+     fix=C("No such file or directory") + " for " + C("kafka_2.13-3.9.2") + ": the download didn't finish; run the "
+     + C("curl") + " line again.")
 step("B", "2", "Broker 1 config, cluster ID, storage, firewall",
      "export KAFKA_HOME=~/kafka\n"
      "cd ~/BD-Assignment\n"
@@ -813,7 +827,8 @@ table([
     ["Highest / lowest delay %", "100% (R02, R04, R06, Hyderabad) / 42.86% (R05, Pune)"],
     ["Fastest / slowest delivery", "R01 22.0 min / R06 47.0 min"],
     ["Node IDs / ports", "VM2 = node 1 (9092 + 9093); VM3 = node 2 (9092)"],
-    ["Versions", "Kafka 4.3.1 (KRaft), PySpark 4.2.0, kafka-python 2.2.15, Java 17+"],
+    ["Versions", "Kafka 3.9.2 (KRaft, TA's required version, same on every broker), PySpark 4.2.0, "
+     "kafka-python 2.2.15, Java 17+"],
 ], [55 * mm, 115 * mm])
 
 

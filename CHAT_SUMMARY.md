@@ -122,6 +122,16 @@ given IP. Also: all repo scripts are run as `bash kafka/...` (the copy lost its
 executable flag → "Permission denied"), and `$KAFKA_HOME/bin/...` commands are
 no longer wrapped in quotes (a missed first `"` left bash waiting).
 
+## Practice back to "both brokers on Aniket's VM" (2026-10-27)
+
+Kruthik's broker 2 never finished joining Aniket's cluster (it showed up as an
+observer, then gave up waiting to catch up, even with the 5-minute timeout).
+Likely causes: a different Kafka version on Kruthik's VM (check with
+`kafka-topics.sh --version`; both must be 4.3.1), or the unstable link to
+Aniket's VM. A switch of the practice PDF to "both brokers on Aniket's VM" was
+made and then **reverted at Aryan's request**: both PDFs and `demo_commands.md`
+keep VM2 = Aniket `10.31.88.79:9092`, VM3 = Kruthik `10.31.88.161:9092`.
+
 ## demo_commands.md rewritten (2026-10-27)
 
 `demo_commands.md` now mirrors the PDF's demo version: one-time steps A-D,

@@ -63,7 +63,7 @@ VM, before the team session.
 | Git | ✔ | ✔ | ✔ | ✔ | Clone this repo (configs and scripts) |
 | netcat (`nc`) | ✔ | ✔ | ✔ | ✔ | Check that brokers are reachable |
 | Java 17+ | ✔ | ✔ | ✔ | ✔ | Kafka runs on Java; PySpark needs it too |
-| Kafka 4.3.1 | optional | ✔ | ✔ | – | The brokers. On VM1 it's only for the cluster check commands |
+| Kafka 3.9.2 | optional | ✔ | ✔ | – | The brokers (all on the same version). On VM1 it's only for the cluster check commands |
 | Python 3.10+ and venv | ✔ | – | – | ✔ | Producers, consumers, Spark jobs |
 | `pip install -r requirements.txt` | ✔ | – | – | ✔ | PySpark 4.2.0, kafka-python 2.2.15 |
 
@@ -92,17 +92,21 @@ cd ~/BD-Assignment
 ### 2. VM2 and VM3 (and optionally VM1): Kafka
 
 ```bash
-curl -LO https://dlcdn.apache.org/kafka/4.3.1/kafka_2.13-4.3.1.tgz
-#   if that link 404s: https://archive.apache.org/dist/kafka/4.3.1/kafka_2.13-4.3.1.tgz
-tar xzf kafka_2.13-4.3.1.tgz -C ~ && ln -sfn ~/kafka_2.13-4.3.1 ~/kafka
-~/kafka/bin/kafka-topics.sh --version                 # prints 4.3.1
+cd ~
+curl -LO https://archive.apache.org/dist/kafka/3.9.2/kafka_2.13-3.9.2.tgz
+tar xzf kafka_2.13-3.9.2.tgz -C ~
+[ -d ~/kafka ] && [ ! -L ~/kafka ] && mv ~/kafka ~/kafka-old     # an older real folder, if any
+ln -sfn ~/kafka_2.13-3.9.2 ~/kafka
+~/kafka/bin/kafka-topics.sh --version                 # prints 3.9.2
 
 # Open the Kafka ports if the firewall is on
 sudo ufw status | grep -q "Status: active" && sudo ufw allow 9092/tcp   # VM2 and VM3
 sudo ufw status | grep -q "Status: active" && sudo ufw allow 9093/tcp   # VM2 only (controller)
 ```
 
-Kafka 4.x runs in KRaft mode only (no ZooKeeper). Formatting the storage and
+**Every machine uses Kafka 3.9.2** (the TA's required version), run in KRaft mode
+(no ZooKeeper). All brokers in the cluster must run the same version; check with
+`~/kafka/bin/kafka-topics.sh --version`. Formatting the storage and
 starting the brokers is covered in "Four-VM deployment" below and in
 `demo_commands.md`.
 

@@ -55,6 +55,23 @@ git pull
 **Expect:** `Already up to date.` or a list of changed files.
 **If it fails:** `Your local changes ... would be overwritten` → `git stash`, then `git pull` again.
 
+### Step A3 · Member 2 (VM2, Aniket) and Member 3 (VM3, Kruthik) · Install Kafka 3.9.2
+The TA's required version. **Both broker machines must run the same version**, or
+broker 2 can't join the cluster.
+```bash
+pkill -9 -f kafka.Kafka
+cd ~
+curl -LO https://archive.apache.org/dist/kafka/3.9.2/kafka_2.13-3.9.2.tgz
+tar xzf kafka_2.13-3.9.2.tgz -C ~
+[ -d ~/kafka ] && [ ! -L ~/kafka ] && mv ~/kafka ~/kafka-old
+ln -sfn ~/kafka_2.13-3.9.2 ~/kafka
+~/kafka/bin/kafka-topics.sh --version
+```
+**Expect:** the last line prints `3.9.2`. Then redo step B (Member 2) and step C
+(Member 3), because storage made by another Kafka version has to be made again.
+**If it fails:** `No such file or directory` for `kafka_2.13-3.9.2` → the download
+didn't finish; run the `curl` line again.
+
 ### Step B · Member 2 (VM2, Aniket) · Broker 1 config, cluster ID, storage, firewall
 ```bash
 export KAFKA_HOME=~/kafka
@@ -382,6 +399,6 @@ isn't back (step 20/21). Get `Isr: 1,2` first, then run this again.
 | Member | One-time | Before the checkpoints | CP1 | CP2 | CP3 | CP4 |
 |---|---|---|---|---|---|---|
 | **Member 1** (VM1, Aryan) | – | 0, 4 | – | 7 | 13, 14, 15 | 17 |
-| **Member 2** (VM2, Aniket) | A, B | 0, 1, 3 | 5 | 6 | 11 | 16, 19, 21, 22 |
-| **Member 3** (VM3, Kruthik) | A, C | 0, 2 | – | – | – | 18, 20 |
+| **Member 2** (VM2, Aniket) | A, A3, B | 0, 1, 3 | 5 | 6 | 11 | 16, 19, 21, 22 |
+| **Member 3** (VM3, Kruthik) | A, A3, C | 0, 2 | – | – | – | 18, 20 |
 | **Member 4** (VM4, Khush) | A, D | 0, 4 | – | 8, 9 | 10, 12 | – |

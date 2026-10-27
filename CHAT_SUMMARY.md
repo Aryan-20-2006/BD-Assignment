@@ -122,6 +122,15 @@ given IP. Also: all repo scripts are run as `bash kafka/...` (the copy lost its
 executable flag → "Permission denied"), and `$KAFKA_HOME/bin/...` commands are
 no longer wrapped in quotes (a missed first `"` left bash waiting).
 
+## Viva guide (2026-10-27)
+
+`Viva_Guide.pdf` (17 pages, 78 Q&As), built by
+`python tools/make_viva_guide.py Viva_Guide.pdf`. Parts: 1 project overview,
+2 reading every checkpoint's output, 3 one section per member (their code + likely
+questions), 4 questions on the outputs (funnel, T040023, CSVs), 5 concept questions
+(Kafka, KRaft, Spark, networking), 6 what-ifs, 7 numbers to remember. All numbers
+were checked against the real outputs and `tests/verify_outputs.py`.
+
 ## Readiness check (2026-10-27)
 
 `bash tools/team_check.sh` (run from Aryan's WSL after step 0) checks ping +

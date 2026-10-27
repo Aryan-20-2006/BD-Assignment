@@ -122,6 +122,20 @@ given IP. Also: all repo scripts are run as `bash kafka/...` (the copy lost its
 executable flag → "Permission denied"), and `$KAFKA_HOME/bin/...` commands are
 no longer wrapped in quotes (a missed first `"` left bash waiting).
 
+## FIRST FULL SUCCESSFUL REHEARSAL (2026-10-27)
+
+All 4 checkpoints passed across separate VMs: Aryan (VM1 + VM4 steps), Aniket
+(VM2, `10.31.88.79`), Kruthik (VM3, `10.31.88.161`), all on **Kafka 3.9.2**, cluster
+ID `e5iQiRSNQGqKuc9Gc6A8vg`. Checks 1-4 (`tools/team_check.sh`) were all READY;
+outputs 62 / 44 / 44, verify OK; after the failure test, Isr 1,2 with the leaders
+back on their preferred brokers.
+Lessons from the run:
+- Box B makes a **new** cluster ID each time; if it's re-run, box C must be
+  redone with that ID (`rm -rf ~/kafka-data`, then format).
+- Run Producer 2 only **once** per run. A second run doubled `order_metrics` to
+  88 (wc -l would then show 88). Fix: delete just `order_metrics`, then
+  `bash kafka/topics.sh create`, then redo steps 11-15.
+
 ## Viva guide (2026-10-27)
 
 `Viva_Guide.pdf` (17 pages, 78 Q&As), built by

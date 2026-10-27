@@ -19,6 +19,24 @@ explains the Kafka and Spark concepts for the viva.
 **Practising with 3 people:** Member 1 also runs every Member 4 step, using
 Member 1's step 0 box.
 
+## Readiness checks (Member 1 runs these)
+
+From Member 1's laptop, in a terminal with step 0 done:
+```bash
+bash tools/team_check.sh
+```
+It ends with **`READY`** or **`NOT READY`**, plus a `FAIL` line for each problem.
+Run it at these 4 moments, and only continue on `READY`:
+
+| When | Must be READY before |
+|---|---|
+| **Check 1:** after steps 1 and 2 (both brokers started), before step 3 | creating topics (topics need both brokers) |
+| **Check 2:** after step 3, before step 6 | the checkpoints start (the TA is watching) |
+| **Check 3:** before step 16 | the failure test (both copies must be in sync) |
+| **Check 4:** after step 21, before step 22 | the leader election (broker 2 must be back) |
+
+At check 1, the topics part says `missing`; that's expected before step 3.
+
 ## Rules for everyone
 
 - Use a **Linux / WSL terminal**, never PowerShell. The prompt looks like

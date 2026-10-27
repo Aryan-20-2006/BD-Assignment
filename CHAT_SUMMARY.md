@@ -122,6 +122,14 @@ given IP. Also: all repo scripts are run as `bash kafka/...` (the copy lost its
 executable flag → "Permission denied"), and `$KAFKA_HOME/bin/...` commands are
 no longer wrapped in quotes (a missed first `"` left bash waiting).
 
+## Readiness check (2026-10-27)
+
+`bash tools/team_check.sh` (run from Aryan's WSL after step 0) checks ping +
+Kafka port of VM2/VM3, both brokers registered with ZeroTier IPs, controller =
+node 1, and topics with Isr 1,2, then prints READY / NOT READY. Run it at 4
+moments: after steps 1-2, before step 6, before step 16, before step 22 (table
+at the top of `demo_commands.md`). Last run: broker 1 OK, broker 2 not running.
+
 ## Kafka 3.9.2 (TA's required version, 2026-10-27)
 
 - Versions found: Aryan 4.3.1, Aniket 4.1.1, Kruthik "6.9.2" (not a real Apache

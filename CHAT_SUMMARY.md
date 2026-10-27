@@ -122,6 +122,22 @@ given IP. Also: all repo scripts are run as `bash kafka/...` (the copy lost its
 executable flag → "Permission denied"), and `$KAFKA_HOME/bin/...` commands are
 no longer wrapped in quotes (a missed first `"` left bash waiting).
 
+## Kafka 3.9.2 (TA's required version, 2026-10-27)
+
+- Versions found: Aryan 4.3.1, Aniket 4.1.1, Kruthik "6.9.2" (not a real Apache
+  Kafka version). Mismatched broker versions are why broker 2 never joined.
+- **Everyone now uses Kafka 3.9.2.** It was tested on Aryan's laptop (local
+  2-broker cluster): all 4 TA checkpoints passed, with no code changes
+  (62/62, observers saw 3, 44, CSVs OK, kill -9 → Isr 1 → producer 62/62 with
+  0 errors → restart → Isr 1,2 → election restored leader 2). Aryan's WSL
+  `~/kafka` now points to `~/kafka_2.13-3.9.2` (4.3.1 kept alongside).
+- New one-time box **A3** (Members 2 and 3) in the PDFs and `demo_commands.md`
+  installs 3.9.2. Download from the fast mirror
+  `https://mirrors.huaweicloud.com/apache/kafka/3.9.2/kafka_2.13-3.9.2.tgz`
+  (checksum verified against archive.apache.org). archive.apache.org is the
+  fallback (~30 KB/s). After installing, redo box B (Member 2) and box C
+  (Member 3), since storage from another version must be re-formatted.
+
 ## Practice back to "both brokers on Aniket's VM" (2026-10-27)
 
 Kruthik's broker 2 never finished joining Aniket's cluster (it showed up as an

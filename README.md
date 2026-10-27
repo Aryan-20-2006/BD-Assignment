@@ -93,7 +93,7 @@ cd ~/BD-Assignment
 
 ```bash
 cd ~
-curl -LO https://archive.apache.org/dist/kafka/3.9.2/kafka_2.13-3.9.2.tgz
+curl -LO https://mirrors.huaweicloud.com/apache/kafka/3.9.2/kafka_2.13-3.9.2.tgz
 tar xzf kafka_2.13-3.9.2.tgz -C ~
 [ -d ~/kafka ] && [ ! -L ~/kafka ] && mv ~/kafka ~/kafka-old     # an older real folder, if any
 ln -sfn ~/kafka_2.13-3.9.2 ~/kafka

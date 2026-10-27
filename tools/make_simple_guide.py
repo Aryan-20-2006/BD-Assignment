@@ -314,7 +314,7 @@ step("A2", "all", "Get updates (before every practice and on demo morning)",
 step("A3", "2+3", "Install Kafka 3.9.2 (the TA's version; the same on both brokers)",
      "pkill -9 -f kafka.Kafka\n"
      "cd ~\n"
-     "curl -LO https://archive.apache.org/dist/kafka/3.9.2/kafka_2.13-3.9.2.tgz\n"
+     "curl -LO https://mirrors.huaweicloud.com/apache/kafka/3.9.2/kafka_2.13-3.9.2.tgz\n"
      "tar xzf kafka_2.13-3.9.2.tgz -C ~\n"
      "[ -d ~/kafka ] && [ ! -L ~/kafka ] && mv ~/kafka ~/kafka-old\n"
      "ln -sfn ~/kafka_2.13-3.9.2 ~/kafka\n"
@@ -324,7 +324,8 @@ step("A3", "2+3", "Install Kafka 3.9.2 (the TA's version; the same on both broke
      "caught up\"). Storage made by another Kafka version must be made again: do box B (Member 2) and box C "
      "(Member 3) after this. Java 17 or 21 works.",
      fix=C("No such file or directory") + " for " + C("kafka_2.13-3.9.2") + ": the download didn't finish; run the "
-     + C("curl") + " line again.")
+     + C("curl") + " line again. If the mirror doesn't work, use Apache's own (slower) link instead: "
+     + C("https://archive.apache.org/dist/kafka/3.9.2/kafka_2.13-3.9.2.tgz") + ".")
 step("B", "2", "Broker 1 config, cluster ID, storage, firewall",
      "export KAFKA_HOME=~/kafka\n"
      "cd ~/BD-Assignment\n"

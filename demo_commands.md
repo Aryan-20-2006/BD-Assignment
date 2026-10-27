@@ -61,7 +61,7 @@ broker 2 can't join the cluster.
 ```bash
 pkill -9 -f kafka.Kafka
 cd ~
-curl -LO https://archive.apache.org/dist/kafka/3.9.2/kafka_2.13-3.9.2.tgz
+curl -LO https://mirrors.huaweicloud.com/apache/kafka/3.9.2/kafka_2.13-3.9.2.tgz
 tar xzf kafka_2.13-3.9.2.tgz -C ~
 [ -d ~/kafka ] && [ ! -L ~/kafka ] && mv ~/kafka ~/kafka-old
 ln -sfn ~/kafka_2.13-3.9.2 ~/kafka
@@ -70,7 +70,8 @@ ln -sfn ~/kafka_2.13-3.9.2 ~/kafka
 **Expect:** the last line prints `3.9.2`. Then redo step B (Member 2) and step C
 (Member 3), because storage made by another Kafka version has to be made again.
 **If it fails:** `No such file or directory` for `kafka_2.13-3.9.2` → the download
-didn't finish; run the `curl` line again.
+didn't finish; run the `curl` line again. If the mirror doesn't work, use Apache's
+own (much slower) link: `https://archive.apache.org/dist/kafka/3.9.2/kafka_2.13-3.9.2.tgz`.
 
 ### Step B · Member 2 (VM2, Aniket) · Broker 1 config, cluster ID, storage, firewall
 ```bash

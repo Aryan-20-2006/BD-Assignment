@@ -353,7 +353,8 @@ if not SAME_HOST:
      'sed -e "s/VM2_ADDRESS/%s/g" -e "s/VM3_ADDRESS/%s/g" \\\n'
      "    %s \\\n"
      "    kafka/vm/vm3-broker2.properties > ~/broker2.properties\n"
-     "grep -E \"voters|advertised|log.dirs\" ~/broker2.properties\n"
+     'echo "initial.broker.registration.timeout.ms=300000" >> ~/broker2.properties\n'
+     "grep -E \"voters|advertised|log.dirs|initial\" ~/broker2.properties\n"
      "$KAFKA_HOME/bin/kafka-storage.sh format -t CLUSTER_ID_FROM_MEMBER_2 \\\n"
      "    -c ~/broker2.properties\n"
      "sudo ufw allow in on zt+" % (VM2_IP, VM3_IP if not SAME_HOST else "VM3_ZEROTIER_IP", DATA_SED),

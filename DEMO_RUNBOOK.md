@@ -1,4 +1,9 @@
-﻿# Demo runbook
+﻿# Demo runbook (OLD: use demo_commands.md instead)
+
+> **Out of date.** This is the earlier 0-32 flow from before the TA's evaluation
+> page. The current steps (the TA's 4 checkpoints, steps 0-22, with the member
+> named on every step) are in **[demo_commands.md](demo_commands.md)** and in
+> `Simple_Guide.pdf`.
 
 Run the steps **in number order**. Each step says **who** runs it. Wait until a
 step has finished, and its owner says "done", before starting the next one.

@@ -122,6 +122,17 @@ given IP. Also: all repo scripts are run as `bash kafka/...` (the copy lost its
 executable flag → "Permission denied"), and `$KAFKA_HOME/bin/...` commands are
 no longer wrapped in quotes (a missed first `"` left bash waiting).
 
+## demo_commands.md rewritten (2026-10-27)
+
+`demo_commands.md` now mirrors the PDF's demo version: one-time steps A-D,
+step 0 boxes per member, and steps 1-22, with **"Member N (VMN, Name)" on every
+step** and Expect / If it fails under each one. It ends with a "who runs what"
+table. `DEMO_RUNBOOK.md` is marked as out of date and points to it.
+Step C (in the markdown and both PDFs) now also adds
+`initial.broker.registration.timeout.ms=300000` to `~/broker2.properties`,
+because broker 2 kept giving up ("waiting for the controller to acknowledge
+that we are caught up") on the slow ZeroTier link.
+
 ## Git for the team (2026-10-25)
 
 - The repo is **public**: https://github.com/Aryan-20-2006/BD-Assignment (Aryan

@@ -1,11 +1,15 @@
-# Demo commands: two-person version (Aryan + Aniket)
+# Demo commands: backup version (both brokers on Aniket's VM)
 
 Today's setup:
 
 | Person | Plays | Machine | Address |
 |---|---|---|---|
-| **Aryan** | VM1 **and** VM4 (producers, consumers, both Spark jobs) | laptop, WSL | (connects out only) |
+| **Aryan** | VM1 (Producer 1, Consumer 2, Spark Job 2) | laptop, WSL | (connects out only) |
 | **Aniket** | VM2 **and** VM3 (both brokers + controller) | his Ubuntu VM | broker 1 `10.31.88.79:9092`, broker 2 `10.31.88.79:9094` |
+| **Khush** | VM4 (Consumer 1, Spark Job 1, Producer 2) | his Ubuntu VM | (connects out only) |
+
+**If Khush's VM isn't ready** (setup below not done, or a test fails), Aryan runs the
+VM4 steps from his laptop instead, using Aryan's step 0 terminal; the commands are the same.
 
 Kruthik's VM couldn't reach the ZeroTier network from his Wi-Fi, so broker 2
 runs on Aniket's VM (port 9094) instead. Every step below names who runs it.
@@ -14,6 +18,31 @@ When you finish your step, say "done", and the other person goes.
 **Rules:** WSL / Linux terminal only (never PowerShell). Step 0 in **every** new
 terminal. Copy one whole block at a time. Step 18 is **never** `pkill -9 -f kafka.Kafka`
 here: on Aniket's VM that would kill both brokers and the controller.
+
+---
+
+## One-time setup for Khush (VM4), about 15 minutes
+
+In his Ubuntu VM (Ctrl+Alt+T). The `sudo` password is his VM login password.
+```bash
+sudo apt update
+sudo apt install -y git openjdk-21-jre-headless python3-venv python3-pip
+cd ~
+[ -L ~/BD-Assignment ] && rm ~/BD-Assignment
+git clone https://github.com/Aryan-20-2006/BD-Assignment.git ~/BD-Assignment
+cd ~/BD-Assignment
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python -c "import pyspark, kafka; print(pyspark.__version__, kafka.__version__)"
+```
+**Expect:** the last line prints `4.2.0 2.2.15`.
+
+**Test that VM4 reaches the brokers** (harmless: it only reads the topic into a test file):
+```bash
+python consumer/consumer1.py --bootstrap-servers 10.31.88.79:9092 --output /tmp/test.jsonl
+```
+**Expect:** `landed ... records`. If it fails or hangs, Aryan runs the VM4 steps instead.
 
 ---
 
@@ -44,6 +73,21 @@ export BS=$B1
 export BOOTSTRAP=$B1,$B2
 export KAFKA_BOOTSTRAP_SERVERS=$B1,$B2
 ```
+
+### Step 0 · Khush (VM4) · Terminal setup (every terminal)
+```bash
+cd ~/BD-Assignment
+git pull
+source .venv/bin/activate
+export B1=10.31.88.79:9092
+export B2=10.31.88.79:9094
+export BS=$B1
+export BOOTSTRAP=$B1,$B2
+export KAFKA_BOOTSTRAP_SERVERS=$B1,$B2
+```
+**Expect:** the prompt starts with `(.venv)`. If Spark later says
+`'JavaPackage' object is not callable`, run
+`unset SPARK_HOME HADOOP_HOME HADOOP_CONF_DIR PYSPARK_PYTHON PYSPARK_DRIVER_PYTHON`.
 
 ### Step 1 · Aniket · Broker 1 running?
 ```bash
@@ -78,7 +122,7 @@ bash kafka/topics.sh create
 **If it fails:** `only 1 broker(s) are registered` → broker 2 isn't up: step 2.
 `Topic 'orders' does not exist as expected` → run `bash kafka/topics.sh create` again.
 
-### Step 4 · Aryan · Clear old outputs
+### Step 4 · Aryan and Khush (VM4) · Clear old outputs (each on their own machine)
 ```bash
 rm -rf outputs/*.jsonl outputs/*.csv outputs/failover_test outputs/recovery_test
 mkdir -p outputs/failover_test outputs/recovery_test
@@ -124,13 +168,13 @@ python producer/producer1.py --input order.jsonl
 **Expect:** `published 62 records`; Aniket's observer prints 3 records and
 `Processed a total of 3 messages`.
 
-### Step 8 · Aryan (as VM4) · Consumer 1
+### Step 8 · Khush (VM4) · Consumer 1
 ```bash
 python consumer/consumer1.py --output outputs/orders_landed.jsonl
 ```
 **Expect:** `landed 62 records`.
 
-### Step 9 · Aryan (as VM4) · Show the landed file
+### Step 9 · Khush (VM4) · Show the landed file
 ```bash
 wc -l outputs/orders_landed.jsonl && head -n 2 outputs/orders_landed.jsonl
 ```
@@ -140,7 +184,7 @@ wc -l outputs/orders_landed.jsonl && head -n 2 outputs/orders_landed.jsonl
 
 ## Checkpoint 3: enriched orders
 
-### Step 10 · Aryan (as VM4) · Spark Job 1
+### Step 10 · Khush (VM4) · Spark Job 1
 ```bash
 python spark/spark_job1.py --input outputs/orders_landed.jsonl \
     --output outputs/order_metrics.jsonl
@@ -156,7 +200,7 @@ $KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server "$BS" \
 ```
 **Expect:** it waits. Say "go".
 
-### Step 12 · Aryan (as VM4) · Producer 2 (within 30 s, run it ONCE)
+### Step 12 · Khush (VM4) · Producer 2 (within 30 s, run it ONCE)
 ```bash
 python producer/producer2.py --input outputs/order_metrics.jsonl
 ```
@@ -254,8 +298,12 @@ step 16. **Demo finished.**
 
 | Person | Before the TA | CP1 | CP2 | CP3 | CP4 |
 |---|---|---|---|---|---|
-| **Aryan** | 0, 4, check | – | 7, 8, 9 | 10, 12, 13, 14, 15, check | 17, checks |
-| **Aniket** | 0, 1, 2, 3 | 5 | 6 | 11 | 16, 18, 19, 20, 21, 22 |
+| **Aryan** (VM1) | 0, 4, check | – | 7 | 13, 14, 15, check | 17, checks |
+| **Aniket** (VM2 + VM3) | 0, 1, 2, 3 | 5 | 6 | 11 | 16, 18, 19, 20, 21, 22 |
+| **Khush** (VM4) | one-time setup, 0, 4 | – | 8, 9 | 10, 12 | – |
+
+**Kruthik (Member 3)** explains VM3's role and the failure test (steps 18 and 20) to the
+TA while Aniket types them, and answers the viva questions on broker 2.
 
 **If the TA asks** why broker 2 is on VM2's machine: Kruthik's VM couldn't reach the
 ZeroTier network from his Wi-Fi today ("Destination Host Unreachable"), so broker 2
